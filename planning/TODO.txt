@@ -1,0 +1,48 @@
+MOSCOW
+
+MUST HAVE
+
+- stop at the end of each lap, pick dice or money maybe - DANTE
+- Bosses (at least 2) that challenge you to be better a the game - LUCAS
+- deluxe and special tiles, more tiles for rewards and stuff
+- each passing tile should give money, effect tiles should give $1 when passing by not nothing
+- clear indicator of when you win or lose and which boss is present on the stage (cannot go blind into the boss, has to know what to expect).
+
+SHOLD HAVE
+
+- tile color indicator of moves while hovering over reserve dice, fixed one color, random another to let you know where you COULD land
+- alternative ways of winning, maybe relic finding, colect all relic and you win instantly
+- correct handling of images (using .webp)
+- Boosts that last X amount of laps
+
+
+COULD HAVE
+
+- prison and warden boss
+- SHOP, Merchant
+- Weighted dice
+
+
+WONT HAVE for first test
+
+- Sounds
+- better sprites/design
+- more complex bonuses, dice, cards.
+
+- transition into a party game 
+
+
+BRO DANTE THIS ARE SOME OF MY THOUGHTS
+
+- I was thinking that the game should shift more towards using dice and cards and less money oriented, try and make party game but should also work single player. Maybe look more into actual party board games.
+
+
+
+
+
+
+ACHIEVEMENTS
+
+Go X amount of rounds without spending money or losing
+
+

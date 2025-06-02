@@ -1,0 +1,32 @@
+
+STORE DATA
+
+playerPosition: Index on the board (e.g., 0-39 for a standard Monopoly-sized board).
+playerMoney: Number.
+currentLap: Number (0, 1, 2).
+diceResult: Array [die1, die2] or single number if using one die.
+gamePhase: String ('rolling', 'moving', 'landed', 'boosterChoice', 'bossEncounter', 'gameOver', 'won').
+boardSquares: An array defining each square (type: normal, booster, chance, start, boss-trigger).
+playerItems: Array/Object for items/dice/cards.
+
+ACTION
+
+rollDice(): Generates random dice numbers, updates diceResult, sets gamePhase to 'moving'.
+movePlayer(): Calculates the new position based on diceResult. Handles passing starting square to add money and increment lap counter if needed. Updates playerPosition. Sets gamePhase to 'landed'.
+handleSquareLanding(): Checks the type of square at playerPosition. If normal, maybe do nothing or move to 'rolling' phase. If special, set gamePhase to 'boosterChoice' or trigger effect. If it's the end-of-lap trigger, check lap count and potentially set gamePhase to 'bossEncounter'.
+applyBooster(choice): Updates player state based on the chosen booster, sets gamePhase back to 'rolling'.
+checkBossCondition(): Compares playerMoney to the required amount for the current lap's boss. Sets gamePhase to 'gameOver' or 'won' (if final lap) or back to 'rolling' (if passed).
+addMoney(amount): Simple action to increase playerMoney.
+resetGame(): Resets all state to initial values.
+
+
+VUE COMPONENTS
+
+App.vue: Main application wrapper. Hold the core game loop logic or delegate to a manager component/store.
+GameBoard.vue: Renders the grid. Could use CSS Grid for layout idk lets see. It would loop through the boardSquares state and render individual BoardSquare.vue components. It would also display the PlayerPiece.vue.
+BoardSquare.vue: Represents a single square on the board, styled based on its type.
+PlayerPiece.vue: A visual representation of the player, positioned based on playerPosition state.
+GameUI.vue (or multiple smaller UI components): Displays money, lap number, current dice roll, game messages, roll button. Interacts with the Pinia store.
+DiceDisplay.vue: Shows the visual dice and result.
+BoosterModal.vue: Pops up when landing on a booster square, presenting choices.
+BossInfo.vue: Displays information about the upcoming boss requirement.

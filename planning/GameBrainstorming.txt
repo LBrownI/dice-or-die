@@ -1,0 +1,41 @@
+
+GAME BASICS
+
+- 6x6 starting grid
+- 1 turn 1 die
+- After 3 rounds passed a boss will trigger
+- Increase grid to 9x9 or more while advancing
+- Dice types, random die, numbered die, boosted die, 20 faced die, special die.
+- 
+
+BOSSES 
+
+- Tax collector
+- Goblin (Gold hoarder)
+- Warden (Prison)
+
+
+PRECIOUS CORNER
+
+- Dice collection or a 20 faced die
+- Big multiplier to gold earned
+
+PUNISHING CORNER
+
+- Prison 
+- Void grid
+
+
+GAME NAMES
+
+Dice or Die (play of words as Dice is plural and Die is singular and could also mean Die as in death if you lose.)
+Square Deal (as the game is mostly constructed out of squares and managing money)
+Diceru (idk just a word)
+
+
+
+Fail state <--- Obstacles       Actions ---> Win State
+
+Mechanics emotions
+
+
