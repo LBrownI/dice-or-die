@@ -8,26 +8,27 @@ Could be a place to include global styles or JavaScript logic that needs to run 
 
 --->
 <script setup>
-// Import global stores or perform app-wide setup here if needed later on... idk, for now just empty
+import { ref } from "vue";
+
+const showMenu = ref(false);
+function toggleMenu() {
+  showMenu.value = !showMenu.value;
+}
 </script>
 
 <template>
   <div id="app-layout">
-    <header class="app-header">
-      <nav>
-        <router-link to="/">Home</router-link>
-        <router-link to="/game">Play Game</router-link>
-        <router-link to="/assets">View Assets</router-link>
-      </nav>
-    </header>
-
+    <div class="menu-bar">
+      <button class="menu-btn" @click="toggleMenu">&#9776;</button>
+      <div v-if="showMenu" class="dropdown-menu">
+        <router-link to="/" @click="showMenu = false">Home</router-link>
+        <router-link to="/game" @click="showMenu = false">Game</router-link>
+        <router-link to="/assets" @click="showMenu = false">Assets</router-link>
+      </div>
+    </div>
     <main class="main-content">
       <router-view />
     </main>
-
-    <footer class="app-footer">
-      <p>&copy; {{ new Date().getFullYear() }} Dice or Die</p>
-    </footer>
   </div>
 </template>
 
@@ -39,50 +40,48 @@ Could be a place to include global styles or JavaScript logic that needs to run 
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   background-color: #f0f2f5; /* A light, neutral background for the entire app */
 }
-
-.app-header {
-  background-color: #2c3e50; /* Dark blue-grey */
-  padding: 15px 30px;
+.menu-bar {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 100;
+}
+.menu-btn {
+  background: #3498db;
   color: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: none;
+  border-radius: 6px;
+  font-size: 1.3em;      /* Smaller icon */
+  padding: 4px 10px;     /* Less padding */
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(44, 62, 80, 0.08);
 }
-
-.app-header nav {
+.dropdown-menu {
+  margin-top: 10px;
+  background: #fff;
+  border: 1px solid #3498db;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(44, 62, 80, 0.08);
   display: flex;
-  justify-content: center; /* Center navigation links */
-  gap: 25px;
+  flex-direction: column;
+  min-width: 120px;
 }
-
-.app-header nav a {
-  color: #ecf0f1; /* Light grey for links */
+.dropdown-menu a {
+  color: #2c3e50;
+  padding: 12px 18px;
   text-decoration: none;
-  font-weight: 500;
-  padding: 5px 0;
-  border-bottom: 2px solid transparent;
-  transition: color 0.3s ease, border-bottom-color 0.3s ease;
+  border-bottom: 1px solid #eee;
+  transition: background 0.2s;
 }
-
-.app-header nav a:hover {
-  color: #ffffff;
+.dropdown-menu a:last-child {
+  border-bottom: none;
 }
-
-.app-header nav a.router-link-exact-active {
-  color: #ffffff; /* White for active link */
-  border-bottom-color: #3498db; /* Blue accent for active link */
+.dropdown-menu a:hover {
+  background: #f0f2f5;
 }
-
 .main-content {
   flex-grow: 1; /* Allows content to fill available vertical space */
   padding: 20px; /* Add some padding around the views */
   /* The views themselves will handle their internal layout (like centering) */
-}
-
-.app-footer {
-  text-align: center;
-  padding: 12px;
-  background-color: #34495e; /* Darker footer */
-  color: #bdc3c7; /* Light grey text */
-  font-size: 0.85em;
-  margin-top: auto; /* Push footer to bottom */
 }
 </style>

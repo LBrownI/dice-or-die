@@ -8,6 +8,9 @@ import ReservedDiceDisplay from "../components/ReservedDiceDisplay.vue";
 import ChoiceModal from "../components/ChoiceModal.vue";
 import SummaryModal from "@/components/SummaryModal.vue";
 
+let gameStore;
+let isGameOver, gamePhase, choiceDetails;
+
 const imagePathsToPreload = [
   // Dados Normales
   `${import.meta.env.BASE_URL}assets/images/dice/die_d6.png`,
@@ -46,9 +49,6 @@ function preloadImages(imagePaths) {
   });
 }
 
-const gameStore = useGameStore();
-const { isGameOver, gamePhase, choiceDetails } = storeToRefs(gameStore);
-
 // URL for the static player image in the display panel
 const staticPlayerDisplayImageUrl = new URL(
   "/assets/images/sprites/knight_static.png",
@@ -56,6 +56,8 @@ const staticPlayerDisplayImageUrl = new URL(
 ).href;
 
 onMounted(() => {
+  gameStore = useGameStore();
+  ({ isGameOver, gamePhase, choiceDetails } = storeToRefs(gameStore));
   preloadImages(imagePathsToPreload);
   gameStore.initializeGame();
 });
