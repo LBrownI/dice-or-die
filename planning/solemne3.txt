@@ -1,0 +1,30 @@
+TODO
+
+Login
+Personajes custom. 
+Mejorar la velocidad.
+Indicar mas claro que son los bosses.
+Tienda para comprar dados.
+Agregar sonidos.
+Multilenguaje.
+
+
+The BACKEND (Express) becomes the single source of truth. 
+It handles the game rules, manages the player's state (money, position, dice), and saves progress. 
+This prevents cheating because all critical logic happens on a machine you control.
+
+The FRONTEND (Vue/Pinia) is responsible for presentation and user input. 
+It will render the game board, send player actions to the server, and display the updated state it receives back.
+
+
+MONGODB will be the permanent database. 
+It'll store the player's progress and state between sessions.
+
+EXPRESS is the game engine and the single source of truth.
+It contains all the rules (STAGE_CONFIGS) /
+ executes all game logic (rollDice, movePlayer) /
+  and is the only part of your system allowed to talk to the database.
+
+VUE/PINIA is purely the presentation layer.
+It displays the game state it receives from Express and sends user inputs to the server. /
+ It will also manage UI-only state (like animations).
