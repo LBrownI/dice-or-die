@@ -1,11 +1,12 @@
 <script setup>
+import { computed } from "vue";
 import { useGameStore } from "../stores/game";
-import { storeToRefs } from "pinia";
 import SingleDieDisplay from "./SingleDieDisplay.vue";
 
 const gameStore = useGameStore();
 // Destructure maxDiceInBag (or the getter diceBagCapacityDisplay)
-const { reservedDice, diceBagCapacityDisplay } = storeToRefs(gameStore);
+const reservedDice           = computed(() => gameStore.reservedDice);
+const diceBagCapacityDisplay = computed(() => gameStore.diceBagCapacityDisplay);
 
 function useReservedDie(index) {
   const die = gameStore.reservedDice[index];
