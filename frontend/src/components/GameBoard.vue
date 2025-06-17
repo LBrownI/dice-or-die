@@ -15,7 +15,6 @@ Interactions:
 --->
 <script setup>
 import { ref, watch, computed } from "vue";
-import { storeToRefs } from "pinia";
 import { useGameStore } from "../stores/game"; // Adjust path if needed
 import BoardSquare from "./BoardSquare.vue";
 
@@ -23,15 +22,13 @@ const justTookDamage = ref(false);
 
 const gameStore = useGameStore();
 // Destructure reactive properties from the store
-const {
-  boardSquares,
-  boardRows,
-  boardCols,
-  playerPosition,
-  currentBoss,
-  currentBossHP,
-  currentBossMaxHP,
-} = storeToRefs(gameStore);
+const boardSquares        = computed(() => gameStore.boardSquares);
+const boardRows           = computed(() => gameStore.boardRows);
+const boardCols           = computed(() => gameStore.boardCols);
+const playerPosition      = computed(() => gameStore.playerPosition);
+const currentBoss         = computed(() => gameStore.currentBoss);
+const currentBossHP       = computed(() => gameStore.currentBossHP);
+const currentBossMaxHP    = computed(() => gameStore.currentBossMaxHP);
 
 watch(currentBossHP, (newVal, oldVal) => {
   if (oldVal != null && newVal < oldVal) {

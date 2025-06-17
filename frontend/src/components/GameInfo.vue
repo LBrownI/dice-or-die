@@ -1,18 +1,15 @@
 <script setup>
-import { storeToRefs } from "pinia";
+import { computed } from "vue";
 import { useGameStore } from "../stores/game";
 
 const gameStore = useGameStore();
-// Get all the necessary reactive properties
-const {
-  playerPosition,
-  playerMoney,
-  playerLap,
-  playerStage,
-  currentStageConfig,
-  lastDiceRoll, // Added back
-  gameMessage, // Added back
-} = storeToRefs(gameStore);
+const playerPosition     = computed(() => gameStore.playerPosition);
+const playerMoney        = computed(() => gameStore.playerMoney);
+const playerLap          = computed(() => gameStore.playerLap);
+const playerStage        = computed(() => gameStore.playerStage);
+const currentStageConfig = computed(() => gameStore.currentStageConfig);
+const lastDiceRoll       = computed(() => gameStore.lastDiceRoll);
+const gameMessage        = computed(() => gameStore.gameMessage);
 </script>
 
 <template>

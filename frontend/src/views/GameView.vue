@@ -1,6 +1,5 @@
 <script setup>
 import { onMounted, computed } from "vue";
-import { storeToRefs } from "pinia";
 import { useGameStore } from "../stores/game"; // Adjust path if store is elsewhere
 import GameBoard from "../components/GameBoard.vue";
 import GameInfo from "../components/GameInfo.vue";
@@ -8,8 +7,11 @@ import ReservedDiceDisplay from "../components/ReservedDiceDisplay.vue";
 import ChoiceModal from "../components/ChoiceModal.vue";
 import SummaryModal from "@/components/SummaryModal.vue";
 
-let gameStore;
-let isGameOver, gamePhase, choiceDetails;
+const gameStore = useGameStore();
+console.log("GameStore instance:", gameStore);
+const isGameOver    = computed(() => gameStore.isGameOver);
+const gamePhase     = computed(() => gameStore.gamePhase);
+const choiceDetails = computed(() => gameStore.choiceDetails);
 
 const imagePathsToPreload = [
   // Dados Normales
@@ -56,8 +58,6 @@ const staticPlayerDisplayImageUrl = new URL(
 ).href;
 
 onMounted(() => {
-  gameStore = useGameStore();
-  ({ isGameOver, gamePhase, choiceDetails } = storeToRefs(gameStore));
   preloadImages(imagePathsToPreload);
   gameStore.initializeGame();
 });
