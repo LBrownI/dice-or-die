@@ -1,25 +1,7 @@
 // src/views/HomeView.vue
 <template>
-  <div class="patch-notes">
-    <h2>Patch Notes</h2>
-    <div class="patch-version">
-      <h3>v1.1.0</h3>
-      <ul>
-        <li>Added patch notes section to home page</li>
-        <li>Improved navigation styling</li>
-      </ul>
-    </div>
-    <div class="patch-version">
-      <h3>v1.0.0</h3>
-      <ul>
-        <li>Initial deployment to GitHub Pages</li>
-        <li>WARNING: 1 issue, when changing between Home, Game and Assets page could break</li>
-        <li>If page breaks reload it and it should be working just fine</li>
-      </ul>
-    </div>
-  </div>
   <div class="home-container">
-    <h1>🎲 Dice OR DIE 🎲</h1>
+    <h1>🎲 Dice or DIE ☠️</h1>
     <nav class="home-nav">
       <router-link to="/game" class="nav-link">Play</router-link>
     </nav>

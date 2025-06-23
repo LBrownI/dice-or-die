@@ -1,25 +1,8 @@
-<!--- src/App.vue --->
-<!---
-Serves as the foundational layout or "shell" that wraps around all other content and views within the game.
-It defines the consistent structure that will be present on every page of the app (common header, navigation links, common footer).
-Contains <router-view /> a placeholder where the content of different "/views" will be dynamically rendered based on the current URL in the browser.
-
-Could be a place to include global styles or JavaScript logic that needs to run for the entire application lifecycle (e.g., checking user auth status)
-
---->
-<script setup>
-import { ref } from "vue";
-
-const showMenu = ref(false);
-function toggleMenu() {
-  showMenu.value = !showMenu.value;
-}
-</script>
-
 <template>
   <div id="app-layout">
     <div class="menu-bar">
       <button class="menu-btn" @click="toggleMenu">&#9776;</button>
+      <router-link to="/login" class="login-btn">Iniciar Sesión</router-link>
       <div v-if="showMenu" class="dropdown-menu">
         <router-link to="/" @click="showMenu = false">Home</router-link>
         <router-link to="/game" @click="showMenu = false">Game</router-link>
@@ -32,18 +15,29 @@ function toggleMenu() {
   </div>
 </template>
 
+<script setup>
+import { ref } from "vue";
+const showMenu = ref(false);
+function toggleMenu() {
+  showMenu.value = !showMenu.value;
+}
+</script>
+
 <style scoped>
 #app-layout {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f0f2f5; /* A light, neutral background for the entire app */
+  background-color: #f0f2f5;
 }
 .menu-bar {
   position: fixed;
   top: 20px;
   left: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   z-index: 100;
 }
 .menu-btn {
@@ -51,10 +45,22 @@ function toggleMenu() {
   color: white;
   border: none;
   border-radius: 6px;
-  font-size: 1.3em;      /* Smaller icon */
-  padding: 4px 10px;     /* Less padding */
+  font-size: 1.3em;
+  padding: 4px 10px;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(44, 62, 80, 0.08);
+}
+.login-btn {
+  background: #2ecc71;
+  color: white;
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.95em;
+  box-shadow: 0 2px 8px rgba(44, 62, 80, 0.08);
+}
+.login-btn:hover {
+  background: #27ae60;
 }
 .dropdown-menu {
   margin-top: 10px;
@@ -65,13 +71,15 @@ function toggleMenu() {
   display: flex;
   flex-direction: column;
   min-width: 120px;
+  position: absolute;
+  top: 40px;
+  left: 0;
 }
 .dropdown-menu a {
   color: #2c3e50;
   padding: 12px 18px;
   text-decoration: none;
   border-bottom: 1px solid #eee;
-  transition: background 0.2s;
 }
 .dropdown-menu a:last-child {
   border-bottom: none;
@@ -80,8 +88,8 @@ function toggleMenu() {
   background: #f0f2f5;
 }
 .main-content {
-  flex-grow: 1; /* Allows content to fill available vertical space */
-  padding: 20px; /* Add some padding around the views */
-  /* The views themselves will handle their internal layout (like centering) */
+  flex-grow: 1;
+  padding: 20px;
+  margin-top: 60px; /* Ensure content not under fixed menu */
 }
 </style>

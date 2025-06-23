@@ -21,6 +21,11 @@ const routes = [
     name: "Assets",
     component: AssetsView,
   },
+  {
+    path: "/login",
+    name: "Login",
+    component: () => import("../views/LoginView.vue"), // Lazy load LoginView
+  }
 ];
 
 const router = createRouter({
