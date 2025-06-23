@@ -191,81 +191,44 @@ function shuffleArray(array) {
  */
 export const useGameStore = defineStore("game", {
   state: () => ({
-    /** @type {number} Number of rows in the current board */
-    boardRows: 0,
-    /** @type {number} Number of columns in the current board */
-    boardCols: 0,
-    /** @type {number} Current player position on the board */
-    playerPosition: 0,
-    /** @type {number} Player's current money */
-    playerMoney: 0,
-    /** @type {number} Current lap number */
-    playerLap: 1,
-    /** @type {number} Current stage number */
-    playerStage: 1,
-    /** @type {number|null} Last dice roll result */
-    lastDiceRoll: null,
-    /** @type {Array} Array of reserved dice */
-    reservedDice: [],
-    /** @type {number} Maximum number of dice that can be held */
-    maxDiceInBag: MAX_RESERVED_DICE,
-    /** @type {Array} Array of board square objects */
-    boardSquares: [],
-    /** @type {string} Current game message to display */
-    gameMessage: "Roll the die to start!",
-    /** @type {boolean} Whether the game is over */
-    isGameOver: false,
-    /** @type {string} Current phase of the game turn */
-    gamePhase: "rolling",
-    /** @type {Object|null} Details for choice-based events */
-    choiceDetails: null,
-    /** @type {number} Animation speed multiplier */
-    animationSpeedMultiplier: 1,
-    /** @type {boolean} Whether an animation is currently playing */
-    isAnimating: false,
-    /** @type {number} Base duration for dice roll animation */
-    diceRollAnimationBaseDuration: 1000,
-    /** @type {number} Base duration for player movement animation */
-    playerStepBaseDuration: 300,
-    /** @type {number} Player's position before current move */
+    boardRows: 0, // ON MONGO
+    boardCols: 0, // ON MONGO
+    playerPosition: 0, // ON MONGO
+    playerMoney: 0, // ON MONGO
+    playerLap: 1, // ON MONGO
+    playerStage: 1, // ON MONGO
+    lastDiceRoll: null, // ON MONGO
+    reservedDice: [], // ON MONGO
+    maxDiceInBag: MAX_RESERVED_DICE, // ON MONGO
+    boardSquares: [], // ON MONGO
+    isGameOver: false, // ON MONGO
+    gamePhase: "rolling", // ON MONGO
+    choiceDetails: null, // ON MONGO
+    animationSpeedMultiplier: 1, // ON MONGO
+    isAnimating: false, // ON MONGO
+    diceRollAnimationBaseDuration: 1000, // ON MONGO
+    playerStepBaseDuration: 300, // ON MONGO
     lastPlayerPositionBeforeThisMove: 0,
-    /** @type {boolean} Whether game assets are loaded */
     assetsLoaded: false,
-    /** @type {number|null} Currently highlighted square */
     highlightedTargetSquare: null,
-    /** @type {number|null} Last general dice roll */
     lastGeneralRoll: null,
-    /** @type {boolean} Whether to show general roll visual */
     showGeneralRoll: false,
 
     // Boss-related state
-    /** @type {Object|null} Current boss data */
     currentBoss: null,
-    /** @type {Array} Array of dice throws during boss battle */
     currentDiceThrows: [],
-    /** @type {number} Remaining dice rolls in boss battle */
     remainingBossRolls: 0,
-    /** @type {number|null} Boss's last roll */
     bossLastRoll: null,
-    /** @type {number|null} Current boss HP */
     currentBossHP: null,
-    /** @type {number|null} Boss's maximum HP */
     currentBossMaxHP: null,
 
     // Game summary state
-    /** @type {number} Total dice rolls in the game */
     totalRolls: 0,
-    /** @type {number} Total dice obtained */
     diceObtained: 0,
-    /** @type {number} Total bosses defeated */
     bossesDefeated: 0,
-    /** @type {number} Perfect boss defeats (exact damage) */
     perfectBossDefeats: 0,
-    /** @type {number} Number of bosses bribed */
     bribesBosses: 0,
-    /** @type {boolean} Whether to show summary modal */
     showSummaryModal: false,
-    /** @type {StageConfig} Current stage configuration */
     currentStageConfig: STAGE_CONFIGS[1],
   }),
 
