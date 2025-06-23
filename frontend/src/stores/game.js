@@ -4,6 +4,7 @@
  * @module stores/game
  */
 import { defineStore } from "pinia";
+import axios from "axios";
 
 // --- Type Definitions ---
 
@@ -191,6 +192,7 @@ function shuffleArray(array) {
  */
 export const useGameStore = defineStore("game", {
   state: () => ({
+    sessionId: null, // MongoDB session ID
     boardRows: 0, // ON MONGO
     boardCols: 0, // ON MONGO
     playerPosition: 0, // ON MONGO
@@ -343,10 +345,20 @@ export const useGameStore = defineStore("game", {
      * Initializes a new game session
      * Sets up initial game state and loads the first stage
      */
-    initializeGame() {
-      console.log("Store: initializeGame - STARTED");
-      this.assetsLoaded = true; // Assuming assets are ready (preloading on hold)
-      this.playerStage = 1;
+    async initializeGame() {
+      // Try to load an existing session from localStorage, else create new
+      const savedSessionId = localStorage.getItem("gameSessionId");
+      if (savedSessionId) {
+        try {
+          await this.loadGame(savedSessionId);
+        } catch (e) {
+          await this.createGame();
+        }
+      } else {
+        await this.createGame();
+      }
+      localStorage.setItem("gameSessionId", this.sessionId);
+      this.assetsLoaded = true;
       this.isGameOver = false;
       this.isAnimating = false;
       this.reservedDice = [];
@@ -487,9 +499,9 @@ export const useGameStore = defineStore("game", {
     /**
      * Adds a die to the player's reserved dice bag
      * @param {Object} dieData - Data for the die to add
-     * @returns {boolean} Whether the die was successfully added
+     * @returns {Promise<void>}
      */
-    addReservedDie(dieData) {
+    async addReservedDie(dieData) {
       console.log("🧩 addReservedDie called with:", dieData);
       if (!dieData) return;
 
@@ -504,6 +516,7 @@ export const useGameStore = defineStore("game", {
         console.log(
           `addReservedDie: Añadido ${signature}. Bolsa actual: ${this.reservedDice.length}`
         );
+        await this.saveGame();
       } else {
         this.gameMessage = `🎒 Bolsa de dados llena (${this.maxDiceInBag})! No se añadió ${dieData.type}.`;
         console.warn("addReservedDie: Bolsa llena. Dado ignorado.");
@@ -545,6 +558,7 @@ export const useGameStore = defineStore("game", {
           await this.failBossFight();
         }
 
+        await this.saveGame();
         return;
       }
       if (this.isGameOver || this.gamePhase !== "rolling" || this.isAnimating) {
@@ -740,6 +754,7 @@ export const useGameStore = defineStore("game", {
         this.isAnimating = false;
         console.log("Store: movePlayer - Ended, game is over. isAnimating set to false.");
       }
+      await this.saveGame();
     },
 
     /**
@@ -778,7 +793,7 @@ export const useGameStore = defineStore("game", {
      * Resets the game state to initial values
      * Used when starting a new game or after game over
      */
-    resetGame() {
+    async resetGame() {
       this.playerMoney = 0;
       this.playerLap = 0;
       this.playerStage = 1;
@@ -797,6 +812,7 @@ export const useGameStore = defineStore("game", {
       this.showSummaryModal = false;
       this.currentStageConfig = STAGE_CONFIGS[1];
       this.setupStage(); // Reinitialize the stage
+      await this.saveGame();
     },
 
     /**
@@ -1069,7 +1085,7 @@ export const useGameStore = defineStore("game", {
           this.gameMessage = `Chose money! +$${chosenOption.value}.`;
           break;
         case "get_chosen_die":
-          this.addReservedDie(chosenOption.value);
+          await this.addReservedDie(chosenOption.value);
           break;
       }
       if (oSI >= 0 && oSI < this.boardSquares.length) {
@@ -1080,6 +1096,7 @@ export const useGameStore = defineStore("game", {
       this.choiceDetails = null;
       this.gamePhase = "rolling";
       this.isAnimating = false;
+      await this.saveGame();
     },
 
     // --- Boss Actions ---
@@ -1274,6 +1291,7 @@ export const useGameStore = defineStore("game", {
       }
       this.currentStageConfig = JSON.parse(JSON.stringify(nextStageConfig));
       this.setupStage(); // ← ESTA LÍNEA ESCLAVEMENTE NECESARIA
+      await this.saveGame();
     },
 
     /**
@@ -1287,6 +1305,7 @@ export const useGameStore = defineStore("game", {
       this.isGameOver = true;
       this.gamePhase = "game_lost";
       this.showSummaryModal = true;
+      await this.saveGame();
     },
 
     /**
@@ -1312,6 +1331,86 @@ export const useGameStore = defineStore("game", {
         "isAnimating:",
         this.isAnimating
       );
+    },
+
+    async createGame() {
+      // Create a new game session in MongoDB
+      const persistentState = this._getPersistentState();
+      const { data } = await axios.post("/api/game", persistentState);
+      this.sessionId = data._id;
+      this._applyPersistentState(data);
+    },
+
+    async loadGame(sessionId) {
+      // Load a game session from MongoDB
+      const { data } = await axios.get(`/api/game/${sessionId}`);
+      this.sessionId = data._id;
+      this._applyPersistentState(data);
+    },
+
+    async saveGame() {
+      // Save the current persistent state to MongoDB
+      if (!this.sessionId) return;
+      const persistentState = this._getPersistentState();
+      await axios.put(`/api/game/${this.sessionId}`, persistentState);
+    },
+
+    _getPersistentState() {
+      // Return only the fields that should be persisted in MongoDB
+      return {
+        playerPosition: this.playerPosition,
+        playerMoney: this.playerMoney,
+        playerLap: this.playerLap,
+        playerStage: this.playerStage,
+        lastDiceRoll: this.lastDiceRoll,
+        reservedDice: this.reservedDice,
+        maxDiceInBag: this.maxDiceInBag,
+        boardRows: this.boardRows,
+        boardCols: this.boardCols,
+        boardSquares: this.boardSquares,
+        isGameOver: this.isGameOver,
+        gamePhase: this.gamePhase,
+        choiceDetails: this.choiceDetails,
+        animationSpeedMultiplier: this.animationSpeedMultiplier,
+        isAnimating: this.isAnimating,
+        diceRollAnimationBaseDuration: this.diceRollAnimationBaseDuration,
+        playerStepBaseDuration: this.playerStepBaseDuration,
+        lastPlayerPositionBeforeThisMove: this.lastPlayerPositionBeforeThisMove,
+        assetsLoaded: this.assetsLoaded,
+        totalRolls: this.totalRolls,
+        bossesDefeated: this.bossesDefeated,
+        diceObtained: this.diceObtained,
+        perfectBossDefeats: this.perfectBossDefeats,
+        bribesBosses: this.bribesBosses,
+      };
+    },
+
+    _applyPersistentState(data) {
+      // Apply persistent state fields from MongoDB to the store
+      this.playerPosition = data.playerPosition;
+      this.playerMoney = data.playerMoney;
+      this.playerLap = data.playerLap;
+      this.playerStage = data.playerStage;
+      this.lastDiceRoll = data.lastDiceRoll;
+      this.reservedDice = data.reservedDice;
+      this.maxDiceInBag = data.maxDiceInBag;
+      this.boardRows = data.boardRows;
+      this.boardCols = data.boardCols;
+      this.boardSquares = data.boardSquares;
+      this.isGameOver = data.isGameOver;
+      this.gamePhase = data.gamePhase;
+      this.choiceDetails = data.choiceDetails;
+      this.animationSpeedMultiplier = data.animationSpeedMultiplier;
+      this.isAnimating = data.isAnimating;
+      this.diceRollAnimationBaseDuration = data.diceRollAnimationBaseDuration;
+      this.playerStepBaseDuration = data.playerStepBaseDuration;
+      this.lastPlayerPositionBeforeThisMove = data.lastPlayerPositionBeforeThisMove;
+      this.assetsLoaded = data.assetsLoaded;
+      this.totalRolls = data.totalRolls;
+      this.bossesDefeated = data.bossesDefeated;
+      this.diceObtained = data.diceObtained;
+      this.perfectBossDefeats = data.perfectBossDefeats;
+      this.bribesBosses = data.bribesBosses;
     },
   },
 });
