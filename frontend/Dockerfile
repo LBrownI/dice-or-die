@@ -1,31 +1,29 @@
 # Stage 1: Build the Vue.js application
+# Stage 1: Build the Vue.js application
 FROM node:24-alpine AS build-stage
-
-# Install pnpm globally in this stage
-RUN npm install -g pnpm
 
 WORKDIR /app
 
-# Copy package.json AND pnpm-lock.yaml
-COPY package.json ./
-COPY pnpm-lock.yaml ./
+COPY package*.json ./
 
+RUN npm install
 
-RUN pnpm install --frozen-lockfile
-
+# Copy the rest of the source code
 COPY . .
 
-# Build the application
-RUN pnpm run build
+# Build the application for production
+# This creates a /app/dist folder with your static files
+RUN npm run build
 
-# Serve the application using Nginx
-FROM nginx:stable-alpine AS production-stage
+# Stage 2: Serve the built application with Nginx
+# Nginx is a very lightweight and high-performance web server
+FROM nginx:stable-alpine
 
-# Update Alpine packages to the latest versions
-RUN apk update && \
-    apk upgrade --available && \
-    rm -rf /var/cache/apk/*
-
+# Copy the built files from the build-stage
 COPY --from=build-stage /app/dist /usr/share/nginx/html
+
+# When the container starts, Nginx will serve the files in this directory
 EXPOSE 80
+
+# The default Nginx command will start the server
 CMD ["nginx", "-g", "daemon off;"]
