@@ -1,26 +1,26 @@
-# Stage 1: Use an official Node.js runtime as the base image
-# Using a specific version is better for consistency
-FROM node:24-alpine AS base
+# Use a specific Node.js version for consistency
+FROM node:20-alpine
 
-# Set the working directory inside the container
+# Set the working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json first to leverage Docker cache
-COPY package*.json ./
+# Install pnpm globally within the image
+RUN npm install -g pnpm
 
-# Stage 2: Install all dependencies, including devDependencies for potential build steps
-FROM base AS dependencies
-RUN npm install
+# Copy the dependency manifests
+# Copy pnpm-lock.yaml first to leverage Docker's cache
+COPY package.json pnpm-lock.yaml ./
 
-# Stage 3: Copy source code and only install production dependencies
-FROM base AS production
-COPY --from=dependencies /app/node_modules ./node_modules
+# Install only the production dependencies inside the container
+# --frozen-lockfile ensures it uses the exact versions from the lockfile
+# --prod is crucial here because a running server doesn't need devDependencies
+RUN pnpm install --prod --frozen-lockfile
+
+# Copy the rest of your application source code
 COPY . .
-# If you have a separate production install command, use it here
-# RUN npm ci --only=production
 
 # Expose the port your Express app runs on
 EXPOSE 3000
 
-# The command to start your server
-CMD [ "node", "server.js" ]
+# The command to start your server, assuming a 'start' script in package.json
+CMD [ "pnpm", "start" ]

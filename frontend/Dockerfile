@@ -1,29 +1,32 @@
-# Stage 1: Build the Vue.js application
-# Stage 1: Build the Vue.js application
-FROM node:24-alpine AS build-stage
+# Stage 1: Build the Vue.js application using pnpm
+FROM node:20-alpine AS build-stage
 
 WORKDIR /app
 
-COPY package*.json ./
+# Install pnpm globally
+RUN npm install -g pnpm
 
-RUN npm install
+# Copy the dependency manifests
+COPY package.json pnpm-lock.yaml ./
+
+# Install ALL dependencies (including devDependencies needed for the build)
+# We do NOT use the --prod flag here because Vite itself is a dev dependency.
+RUN pnpm install --frozen-lockfile
 
 # Copy the rest of the source code
 COPY . .
 
 # Build the application for production
-# This creates a /app/dist folder with your static files
-RUN npm run build
+RUN pnpm build
 
 # Stage 2: Serve the built application with Nginx
-# Nginx is a very lightweight and high-performance web server
 FROM nginx:stable-alpine
 
-# Copy the built files from the build-stage
+# Copy the built static files from the build stage
 COPY --from=build-stage /app/dist /usr/share/nginx/html
 
-# When the container starts, Nginx will serve the files in this directory
+# Expose port 80 (standard HTTP port)
 EXPOSE 80
 
-# The default Nginx command will start the server
+# Start Nginx
 CMD ["nginx", "-g", "daemon off;"]
