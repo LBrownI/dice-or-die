@@ -22,4 +22,5 @@ app.use("/users", usersRouter);
 // Register the new game API route
 app.use("/api/game", gameRouter);
 
+// ─── Manejo de errores, etc.
 module.exports = app;
