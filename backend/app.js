@@ -7,7 +7,7 @@ var indexRouter = require("./routes/index");
 var usersRouter = require("./routes/users");
 
 // Add this import for the new game router
-import gameRouter from "./routes/game.js";
+gameRouter = require('./routes/game');
 
 var app = express();
 

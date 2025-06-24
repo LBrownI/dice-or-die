@@ -1,5 +1,5 @@
 // In your backend, e.g., models/GameSession.js
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const gameSessionSchema = new mongoose.Schema(
   {

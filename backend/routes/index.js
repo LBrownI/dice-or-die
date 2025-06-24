@@ -2,9 +2,9 @@ var express = require("express");
 var router = express.Router();
 
 // In your Express routes file
-import GameSession from "../models/GameSession.js";
+const GameSession = require("../models/GameSession.js");
 // Import your game logic functions (rollDice, movePlayer, etc.)
-import { performRoll } from "../services/gameLogic.js";
+const { performRoll } = require("../services/gameLogic.js");
 
 app.post("/api/game/:sessionId/roll", async (req, res) => {
   try {
