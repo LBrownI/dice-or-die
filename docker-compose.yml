@@ -1,0 +1,39 @@
+version: "3.8"
+
+services:
+  # 1. MongoDB Database Service
+  mongo:
+    image: mongo:latest
+    container_name: mongodb_container
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  # 2. Express Backend API Service
+  api:
+    build:
+      context: ./backend # Path to the backend Dockerfile
+    container_name: express_api_container
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mongo # Tells Docker to start the mongo container before the api container
+    environment:
+      # The new, simpler connection string without credentials
+      - MONGODB_URI=mongodb://mongo:27017/dice_or_die_db
+      - PORT=3000
+
+  # 3. Vue Frontend Client Service
+  client:
+    build:
+      context: ./frontend # Path to the frontend Dockerfile
+    container_name: vue_client_container
+    ports:
+      - "8080:80" # Access your Vue app via localhost:8080
+    depends_on:
+      - api # Wait for the API to be ready
+
+# Define a volume for persisting MongoDB data
+volumes:
+  mongo-data:
