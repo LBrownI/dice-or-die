@@ -1,26 +1,29 @@
-var express = require("express");
-var path = require("path");
-var cookieParser = require("cookie-parser");
-var logger = require("morgan");
+const express      = require('express');
+const cors         = require('cors');
+const morgan       = require('morgan');
+const cookieParser = require('cookie-parser');
+const mongoose     = require('mongoose');
+require('dotenv').config();            // lee .env
 
-var indexRouter = require("./routes/index");
-var usersRouter = require("./routes/users");
+const indexRouter = require('./routes/index');
+const usersRouter = require('./routes/users');
 
-// Add this import for the new game router
-gameRouter = require('./routes/game');
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://mongodb_container:27017/dice_or_die';
 
-var app = express();
+mongoose.connect(MONGODB_URI)
+        .then(() => console.log('MongoDB connected'))
+        .catch(err => console.error('Mongo error', err));
 
-app.use(logger("dev"));
+const app = express();
+
+app.use(morgan('dev'));
+app.use(cors());                       // ahora sí se usa
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, "public")));
 
-app.use("/", indexRouter);
-app.use("/users", usersRouter);
-// Register the new game API route
-app.use("/api/game", gameRouter);
+app.use('/',       indexRouter);
+app.use('/users',  usersRouter);       // POST /users/register  |  POST /users/login
 
-// ─── Manejo de errores, etc.
+// ── Manejo de errores / 404 omitido por brevedad
 module.exports = app;

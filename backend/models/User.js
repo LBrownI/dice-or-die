@@ -1,37 +1,20 @@
-// models/User.js
 const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
-
-const SALT_ROUNDS = 10;
+const bcrypt   = require('bcrypt');
 
 const userSchema = new mongoose.Schema({
-  user: {
-    type: String,
-    required: true,
-    unique: true,
-    trim: true,
-  },
-  password: {
-    type: String,
-    required: true
-  }
-});
+  username: { type: String, required: true, unique: true, trim: true },
+  // email eliminado
+  password: { type: String, required: true },
+}, { timestamps: true });
 
-// Antes de guardar, hashea la contraseña
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
-  try {
-    const hash = await bcrypt.hash(this.password, SALT_ROUNDS);
-    this.password = hash;
-    next();
-  } catch (err) {
-    next(err);
-  }
+  this.password = await bcrypt.hash(this.password, 10);
+  next();
 });
 
-// Método para comprobar contraseña
-userSchema.methods.comparePassword = function (candidate) {
-  return bcrypt.compare(candidate, this.password);
+userSchema.methods.comparePassword = function (plain) {
+  return bcrypt.compare(plain, this.password);
 };
 
 module.exports = mongoose.model('User', userSchema);

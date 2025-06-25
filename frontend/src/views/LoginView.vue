@@ -1,43 +1,36 @@
-<script>
-import axios from 'axios'
-export default {
-  name: 'AuthCard',
-  data() {
-    return {
-      form: {
-        user: '',
-        password: ''
-      },
-      message: '',
-      messageType: ''
-    }
-  },
-  methods: {
-    showMessage(text, isError = false) {
-      this.message = text
-      this.messageType = isError ? 'error' : 'success'
-    },
-    async login() {
-      const { user, password } = this.form
-      if (!user || !password) return this.showMessage('Todos los campos son obligatorios.', true)
-      try {
-        const res = await axios.post('http://localhost:3000/users/login', { user, password })
-        this.showMessage('Login exitoso!')
-        // manejar token: res.data.token
-      } catch (err) {
-        this.showMessage(err.response?.data?.error || 'Error al ingresar.', true)
-      }
-    },
-    async register() {
-      const { user, password } = this.form
-      if (!user || !password) return this.showMessage('Todos los campos son obligatorios.', true)
-      try {
-        await axios.post('http://localhost:3000/users/register', { user, password })
-        this.showMessage('Usuario registrado correctamente.')
-      } catch (err) {
-        this.showMessage(err.response?.data?.error || 'Error al registrar.', true)
-      }
-    }
+<script setup>
+import { ref } from 'vue'
+import api from '@/services/api'
+
+const form        = ref({ username: '', password: '' })
+const message     = ref('')
+const messageType = ref('')
+
+function showMessage (txt, isError = false) {
+  message.value     = txt
+  messageType.value = isError ? 'error' : 'success'
+}
+
+async function register () {
+  const { username, password } = form.value
+  if (!username || !password) return showMessage('Todos los campos son obligatorios.', true)
+  try {
+    await api.post('/users/register', { username, password })
+    showMessage('Usuario registrado correctamente.')
+  } catch (err) {
+    showMessage(err.response?.data?.message || 'Error al registrar.', true)
+  }
+}
+
+async function login () {
+  const { username, password } = form.value
+  if (!username || !password) return showMessage('Todos los campos son obligatorios.', true)
+  try {
+    const { data } = await api.post('/users/login', { username, password })
+    localStorage.setItem('token', data.token)
+    showMessage('Login exitoso!')
+  } catch (err) {
+    showMessage(err.response?.data?.message || 'Error al ingresar.', true)
   }
 }
 </script>
@@ -45,18 +38,22 @@ export default {
 <template>
   <div class="login-card">
     <h2>Ingreso / Registro</h2>
+
     <div class="input-group">
-      <label for="user">Usuario</label>
-      <input v-model="form.user" type="text" id="user" placeholder="Ingresa tu usuario" />
+      <label>Usuario</label>
+      <input v-model="form.username" type="text" placeholder="Nombre de usuario" />
     </div>
+
     <div class="input-group">
-      <label for="password">Contraseña</label>
-      <input v-model="form.password" type="password" id="password" placeholder="Ingresa tu contraseña" />
+      <label>Contraseña</label>
+      <input v-model="form.password" type="password" placeholder="••••••••" />
     </div>
+
     <div class="actions">
-      <button class="login" @click="login">Login</button>
+      <button class="login"    @click="login">Login</button>
       <button class="register" @click="register">Crear</button>
     </div>
+
     <div class="message" :class="messageType">{{ message }}</div>
   </div>
 </template>

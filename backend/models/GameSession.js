@@ -60,4 +60,4 @@ const gameSessionSchema = new mongoose.Schema(
 ); // Adds createdAt and updatedAt
 
 const GameSession = mongoose.model("GameSession", gameSessionSchema);
-export default GameSession;
+module.exports = GameSession;
