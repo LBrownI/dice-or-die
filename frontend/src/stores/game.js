@@ -232,6 +232,10 @@ export const useGameStore = defineStore("game", {
     bribesBosses: 0,
     showSummaryModal: false,
     currentStageConfig: STAGE_CONFIGS[1],
+
+    playerCharacter: "knight",
+    playerSkin: "blue",
+    characterLocked: false,
   }),
 
   getters: {
@@ -314,6 +318,12 @@ export const useGameStore = defineStore("game", {
   },
 
   actions: {
+    
+    setPlayerCharacter({ character, skin }) {
+      this.playerCharacter = character;
+      this.playerSkin = skin;
+      this.characterLocked = true;
+    },
     /**
      * Toggles the animation speed between normal, fast, and instant
      * Updates the game message to reflect the current speed
@@ -1334,12 +1344,18 @@ export const useGameStore = defineStore("game", {
     },
 
     async createGame() {
-      // Create a new game session in MongoDB
+      
       const persistentState = this._getPersistentState();
-      const { data } = await axios.post("/api/game", persistentState);
+
+      // Apunta al endpoint real (/api/game), sin prefijo /dice-or-die
+      const url = `${import.meta.env.VITE_BACKEND_URL}/api/game`;
+      
+      const { data } = await axios.post(url, persistentState);
       this.sessionId = data._id;
       this._applyPersistentState(data);
     },
+
+
 
     async loadGame(sessionId) {
       // Load a game session from MongoDB

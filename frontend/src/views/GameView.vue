@@ -1,152 +1,203 @@
 <script setup>
-import { onMounted, computed } from "vue";
-import { useGameStore } from "../stores/game"; // Adjust path if store is elsewhere
+import { ref, onMounted, computed } from "vue";
+import { useGameStore } from "../stores/game";
 import GameBoard from "../components/GameBoard.vue";
 import GameInfo from "../components/GameInfo.vue";
 import ReservedDiceDisplay from "../components/ReservedDiceDisplay.vue";
+import CharacterSelectorModal from "../components/CharacterSelectorModal.vue";
 import ChoiceModal from "../components/ChoiceModal.vue";
 import SummaryModal from "@/components/SummaryModal.vue";
 
 const gameStore = useGameStore();
-console.log("GameStore instance:", gameStore);
-const isGameOver    = computed(() => gameStore.isGameOver);
-const gamePhase     = computed(() => gameStore.gamePhase);
-const choiceDetails = computed(() => gameStore.choiceDetails);
 
-const imagePathsToPreload = [
-  // Dados Normales
-  `${import.meta.env.BASE_URL}assets/images/dice/die_d6.png`,
-  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_1.png`,
-  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_2.png`,
-  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_3.png`,
-  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_4.png`,
-  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_5.png`,
-  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_6.png`,
+// Reactive state
+const showCharacterMenu = ref(false);
+const selectedCharacter = ref(gameStore.playerCharacter);
+const selectedSkin      = ref(gameStore.playerSkin);
 
-  // Dados Especiales
-  `${import.meta.env.BASE_URL}assets/images/dice/die_d20.png`,
-
-  // Dados Reversa
-  `${import.meta.env.BASE_URL}assets/images/dice/die_d6_reverse.png`,
-  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_reverse_1.png`,
-  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_reverse_2.png`,
-  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_reverse_3.png`,
-  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_reverse_4.png`,
-  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_reverse_5.png`,
-  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_reverse_6.png`,
-
-  // Jefes
-  `${import.meta.env.BASE_URL}assets/images/bosses/dark_godcat.webp`,
-  `${import.meta.env.BASE_URL}assets/images/bosses/dragon_treasurer.png`,
-  `${import.meta.env.BASE_URL}assets/images/bosses/goblin_general.png`,
-  `${import.meta.env.BASE_URL}assets/images/bosses/greedy_goblin_king.webp`,
-  `${import.meta.env.BASE_URL}assets/images/bosses/orc_general.png`,
-  `${import.meta.env.BASE_URL}assets/images/bosses/tax_collector.png`,
+// Define tus personajes y skins
+const characters = [
+  { id: "knight", name: "Caballero", skins: ["blue","red","green","black"] },
+  { id: "wizard", name: "Hechicero", skins: ["blue","red","green","purple"] },
+  { id: "rogue",  name: "Pícaro",    skins: ["blue","red","green","purple"] },
 ];
 
-function preloadImages(imagePaths) {
-  imagePaths.forEach((path) => {
+// Computed para armar la URL de la imagen
+const characterImageUrl = computed(() => {
+  const id   = selectedCharacter.value;
+  const skin = selectedSkin.value;
+  return new URL(
+    `/assets/images/characters/${id}/${id}_${skin}.png`,
+    import.meta.url
+  ).href;
+});
+
+// Computed para mostrar nombre actual
+const currentCharacterName = computed(() => {
+  const c = characters.find(c => c.id === gameStore.playerCharacter);
+  return c ? c.name : "";
+});
+
+// Computed para deshabilitar “Lanzar dado”
+const isRollDisabled = computed(() => {
+  return (
+    gameStore.isGameOver ||
+    gameStore.isAnimating ||
+    (gameStore.gamePhase !== "boss_encounter" && gameStore.gamePhase !== "rolling") ||
+    (gameStore.gamePhase === "boss_encounter" && gameStore.remainingBossRolls <= 0) ||
+    !gameStore.assetsLoaded
+  );
+});
+
+// Velocidad de juego
+const currentSpeedText = computed(() => {
+  switch (gameStore.animationSpeedMultiplier) {
+    case 0: return "Instant";
+    case 1: return "Normal";
+    case 2: return "Faster";
+    default: return "Unknown";
+  }
+});
+
+// Preload de imágenes (dados, jefes, etc.)
+const imagePathsToPreload = [
+  // ... tus rutas aquí ...
+];
+
+function preloadImages(paths) {
+  paths.forEach((p) => {
     const img = new Image();
-    img.src = path;
+    img.src = p;
   });
 }
 
-// URL for the static player image in the display panel
-const staticPlayerDisplayImageUrl = new URL(
-  "/assets/images/sprites/knight_static.png",
-  import.meta.url
-).href;
-
 onMounted(() => {
   preloadImages(imagePathsToPreload);
-  gameStore.initializeGame();
 });
 
-function handleRollNormalDice() {
-  if (
-    (gameStore.gamePhase === "rolling" || gameStore.gamePhase === "boss_encounter") &&
-    !gameStore.isGameOver &&
-    gameStore.assetsLoaded
-  ) {
-    gameStore.rollDice();
+// Manejo de acciones
+function toggleCharacterMenu() {
+  if (!gameStore.characterLocked) {
+    showCharacterMenu.value = !showCharacterMenu.value;
   }
+}
+
+function confirmCharacterSelection() {
+  gameStore.setPlayerCharacter({
+    character: selectedCharacter.value,
+    skin:      selectedSkin.value,
+  });
+  showCharacterMenu.value = false;
+  gameStore.initializeGame();
+}
+
+function handleRollNormalDice() {
+  gameStore.rollDice();
 }
 
 function handleChoice(option) {
   gameStore.playerMakesChoice(option);
 }
 
-const currentSpeedText = computed(() => {
-  switch (gameStore.animationSpeedMultiplier) {
-    case 0:
-      return "Instant";
-    case 1:
-      return "Normal";
-    case 2:
-      return "Faster";
-    default:
-      return "Unknown";
-  }
-});
-
 function handleToggleSpeed() {
   gameStore.toggleAnimationSpeed();
 }
+
+// Estado y fases de juego
+const isGameOver    = computed(() => gameStore.isGameOver);
+const gamePhase     = computed(() => gameStore.gamePhase);
+const choiceDetails = computed(() => gameStore.choiceDetails);
 </script>
 
 <template>
   <div class="game-view-container">
     <div class="main-game-area">
+      
+      <!-- PANEL IZQUIERDO -->
       <div class="left-panel-area">
         <div class="player-display-area">
+          
+          <!-- Botón para cambiar personaje (solo si no está bloqueado) -->
+          <button
+            v-if="!gameStore.characterLocked"
+            class="change-character-button"
+            @click="toggleCharacterMenu"
+          >
+            Cambiar personaje
+          </button>
+
+          <!-- Avatar y nombre siempre visibles -->
           <img
-            :src="staticPlayerDisplayImageUrl"
-            alt="Player Knight"
+            :src="characterImageUrl"
+            alt="Player Avatar"
             class="large-static-player-image"
           />
-          <h3 class="player-name">El Caballero</h3>
+          <h3 class="player-name">
+            {{ currentCharacterName }}
+          </h3>
         </div>
-        <GameInfo class="game-info-content" />
-      </div>
 
+        <!-- Panel de información -->
+        <GameInfo class="game-info-content" />
+      </div> <!-- ← cierre left-panel-area -->
+
+
+      <!-- TABLERO -->
       <div class="game-board-container">
         <GameBoard class="game-board-component" />
       </div>
 
+
+      <!-- PANEL DERECHO: dados y botones -->
       <div class="right-action-panel">
         <ReservedDiceDisplay class="dice-reserve-component" />
+
         <div class="action-buttons-group">
+          <!-- Botón “Lanzar dado” -->
           <div class="normal-roll-button-container">
             <button
               @click="handleRollNormalDice"
-              :disabled="
-                isGameOver ||
-                gameStore.isAnimating ||
-                (gamePhase !== 'boss_encounter' && gamePhase !== 'rolling') ||
-                (gamePhase === 'boss_encounter' && gameStore.remainingBossRolls <= 0)
-              "
+              :disabled="isRollDisabled"
               class="roll-button"
             >
               Lanzar dado
             </button>
           </div>
+          <!-- Botón de velocidad -->
           <div class="speed-control-container">
             <button @click="handleToggleSpeed" class="speed-button">
               Velocidad de juego: {{ currentSpeedText }}
             </button>
           </div>
         </div>
-      </div>
-    </div>
+      </div> <!-- ← cierre right-action-panel -->
 
+    </div> <!-- ← cierre main-game-area -->
+
+
+    <!-- Modales de flujo de juego -->
     <ChoiceModal
       v-if="gamePhase === 'awaiting_choice' && choiceDetails"
       :details="choiceDetails"
       @player-choice="handleChoice"
     />
     <SummaryModal v-if="gameStore.showSummaryModal" />
-  </div>
+
+    <!-- Nuestro modal de selección de personaje -->
+    <CharacterSelectorModal
+      v-if="showCharacterMenu"
+      :characters="characters"
+      :modelValueCharacter="selectedCharacter"
+      :modelValueSkin="selectedSkin"
+      @update:character="selectedCharacter = $event"
+      @update:skin="selectedSkin = $event"
+      @confirm="confirmCharacterSelection"
+      @cancel="showCharacterMenu = false"
+    />
+  </div> <!-- ← cierre game-view-container -->
 </template>
+
+
 
 <style scoped>
 .game-view-container {
@@ -284,5 +335,37 @@ function handleToggleSpeed() {
   background-color: #aaa;
   cursor: not-allowed;
   opacity: 0.7;
+}
+
+.change-character-button {
+  margin-bottom: 8px;
+  padding: 6px 12px;
+  font-size: 0.9em;
+}
+.character-selector-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.character-selector-modal {
+  background: white;
+  padding: 20px;
+  border-radius: 6px;
+  width: 300px;
+}
+.character-selector-modal ul {
+  list-style: none;
+  padding: 0;
+}
+.character-selector-modal li {
+  margin: 6px 0;
+}
+.character-selector-modal .buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 12px;
 }
 </style>

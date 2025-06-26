@@ -3066,10 +3066,12 @@ snapshots:
 
   'package@file:':
     dependencies:
+      axios: 1.10.0
       pinia: 3.0.2(vue@3.5.13)
       vue: 3.5.13
       vue-router: 4.5.1(vue@3.5.13)
     transitivePeerDependencies:
+      - debug
       - typescript
 
   parent-module@1.0.1:
