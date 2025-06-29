@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, computed } from "vue";
 import { useGameStore } from "../stores/game"; // Adjust path if store is elsewhere
+import { useRoute } from "vue-router";
 import GameBoard from "../components/GameBoard.vue";
 import GameInfo from "../components/GameInfo.vue";
 import ReservedDiceDisplay from "../components/ReservedDiceDisplay.vue";
@@ -8,9 +9,10 @@ import ChoiceModal from "../components/ChoiceModal.vue";
 import SummaryModal from "@/components/SummaryModal.vue";
 
 const gameStore = useGameStore();
+const route = useRoute();
 console.log("GameStore instance:", gameStore);
-const isGameOver    = computed(() => gameStore.isGameOver);
-const gamePhase     = computed(() => gameStore.gamePhase);
+const isGameOver = computed(() => gameStore.isGameOver);
+const gamePhase = computed(() => gameStore.gamePhase);
 const choiceDetails = computed(() => gameStore.choiceDetails);
 
 const imagePathsToPreload = [
@@ -57,9 +59,14 @@ const staticPlayerDisplayImageUrl = new URL(
   import.meta.url
 ).href;
 
-onMounted(() => {
+onMounted(async () => {
   preloadImages(imagePathsToPreload);
-  gameStore.initializeGame();
+  const sessionId = route.params.sessionId;
+  if (sessionId) {
+    await gameStore.loadGame(sessionId);
+  } else {
+    console.error("No game session ID found in the URL.");
+  }
 });
 
 function handleRollNormalDice() {
@@ -96,55 +103,59 @@ function handleToggleSpeed() {
 
 <template>
   <div class="game-view-container">
-    <div class="main-game-area">
-      <div class="left-panel-area">
-        <div class="player-display-area">
-          <img
-            :src="staticPlayerDisplayImageUrl"
-            alt="Player Knight"
-            class="large-static-player-image"
-          />
-          <h3 class="player-name">El Caballero</h3>
-        </div>
-        <GameInfo class="game-info-content" />
-      </div>
-
-      <div class="game-board-container">
-        <GameBoard class="game-board-component" />
-      </div>
-
-      <div class="right-action-panel">
-        <ReservedDiceDisplay class="dice-reserve-component" />
-        <div class="action-buttons-group">
-          <div class="normal-roll-button-container">
-            <button
-              @click="handleRollNormalDice"
-              :disabled="
-                isGameOver ||
-                gameStore.isAnimating ||
-                (gamePhase !== 'boss_encounter' && gamePhase !== 'rolling') ||
-                (gamePhase === 'boss_encounter' && gameStore.remainingBossRolls <= 0)
-              "
-              class="roll-button"
-            >
-              Lanzar dado
-            </button>
+    <template v-if="gameStore.boardIsReady">
+      <div class="main-game-area">
+        <div class="left-panel-area">
+          <div class="player-display-area">
+            <img
+              :src="staticPlayerDisplayImageUrl"
+              alt="Player Knight"
+              class="large-static-player-image"
+            />
+            <h3 class="player-name">El Caballero</h3>
           </div>
-          <div class="speed-control-container">
-            <button @click="handleToggleSpeed" class="speed-button">
-              Velocidad de juego: {{ currentSpeedText }}
-            </button>
+          <GameInfo class="game-info-content" />
+        </div>
+
+        <div class="game-board-container">
+          <GameBoard class="game-board-component" />
+        </div>
+
+        <div class="right-action-panel">
+          <ReservedDiceDisplay class="dice-reserve-component" />
+          <div class="action-buttons-group">
+            <div class="normal-roll-button-container">
+              <button
+                @click="handleRollNormalDice"
+                :disabled="
+                  isGameOver ||
+                  gameStore.isAnimating ||
+                  (gamePhase !== 'boss_encounter' && gamePhase !== 'rolling') ||
+                  (gamePhase === 'boss_encounter' && gameStore.remainingBossRolls <= 0)
+                "
+                class="roll-button"
+              >
+                Lanzar dado
+              </button>
+            </div>
+            <div class="speed-control-container">
+              <button @click="handleToggleSpeed" class="speed-button">
+                Velocidad de juego: {{ currentSpeedText }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <ChoiceModal
-      v-if="gamePhase === 'awaiting_choice' && choiceDetails"
-      :details="choiceDetails"
-      @player-choice="handleChoice"
-    />
-    <SummaryModal v-if="gameStore.showSummaryModal" />
+      <ChoiceModal
+        v-if="gamePhase === 'awaiting_choice' && choiceDetails"
+        :details="choiceDetails"
+        @player-choice="handleChoice"
+      />
+      <SummaryModal v-if="gameStore.showSummaryModal" />
+    </template>
+
+    <div v-else class="loading-message">Loading game...</div>
   </div>
 </template>
 
@@ -284,5 +295,12 @@ function handleToggleSpeed() {
   background-color: #aaa;
   cursor: not-allowed;
   opacity: 0.7;
+}
+
+.loading-message {
+  font-size: 1.5em;
+  color: #555;
+  text-align: center;
+  margin-top: 100px;
 }
 </style>

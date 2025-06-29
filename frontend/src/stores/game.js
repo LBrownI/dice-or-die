@@ -4,7 +4,7 @@
  * @module stores/game
  */
 import { defineStore } from "pinia";
-import axios from "axios";
+import apiClient from "../services/api.js";
 
 // --- Type Definitions ---
 
@@ -215,6 +215,7 @@ export const useGameStore = defineStore("game", {
     highlightedTargetSquare: null,
     lastGeneralRoll: null,
     showGeneralRoll: false,
+    boardIsReady: false, // NEW: Flag to indicate when board is ready to display
 
     // Boss-related state
     currentBoss: null,
@@ -346,6 +347,9 @@ export const useGameStore = defineStore("game", {
      * Sets up initial game state and loads the first stage
      */
     async initializeGame() {
+      // Reset the ready flag when starting initialization
+      this.boardIsReady = false;
+
       // Try to load an existing session from localStorage, else create new
       const savedSessionId = localStorage.getItem("gameSessionId");
       if (savedSessionId) {
@@ -367,7 +371,15 @@ export const useGameStore = defineStore("game", {
       if (this.gamePhase !== "awaiting_choice") {
         this.gamePhase = "rolling";
       }
-      console.log("Store: initializeGame - FINISHED. Phase:", this.gamePhase);
+
+      // Set the board as ready after all initialization is complete
+      this.boardIsReady = true;
+      console.log(
+        "Store: initializeGame - FINISHED. Phase:",
+        this.gamePhase,
+        "Board ready:",
+        this.boardIsReady
+      );
     },
 
     /**
@@ -794,6 +806,9 @@ export const useGameStore = defineStore("game", {
      * Used when starting a new game or after game over
      */
     async resetGame() {
+      // Reset the ready flag when starting reset
+      this.boardIsReady = false;
+
       this.playerMoney = 0;
       this.playerLap = 0;
       this.playerStage = 1;
@@ -813,6 +828,10 @@ export const useGameStore = defineStore("game", {
       this.currentStageConfig = STAGE_CONFIGS[1];
       this.setupStage(); // Reinitialize the stage
       await this.saveGame();
+
+      // Set the board as ready after reset is complete
+      this.boardIsReady = true;
+      console.log("Store: resetGame - FINISHED. Board ready:", this.boardIsReady);
     },
 
     /**
@@ -1334,25 +1353,58 @@ export const useGameStore = defineStore("game", {
     },
 
     async createGame() {
-      // Create a new game session in MongoDB
-      const persistentState = this._getPersistentState();
-      const { data } = await axios.post("/api/game", persistentState);
-      this.sessionId = data._id;
-      this._applyPersistentState(data);
+      // Reset the ready flag when starting to create a new game
+      this.boardIsReady = false;
+
+      try {
+        console.log("Pinia: Creating new game session");
+        const persistentState = this._getPersistentState();
+        const { data } = await apiClient.post("/api/game/start", persistentState);
+
+        // Log the data to make sure you're getting what you expect
+        console.log("Pinia: Received new game state from server:", data);
+
+        // THE FIX: Use $patch to apply all properties from the server data
+        this.$patch(data);
+
+        // Now that the state is updated, set the flag to true
+        this.boardIsReady = true;
+        console.log("Pinia: New game created and board is ready!");
+      } catch (error) {
+        console.error("Pinia: Failed to create new game:", error);
+        // Optionally handle the error, e.g., show a message to the user
+      }
     },
 
     async loadGame(sessionId) {
-      // Load a game session from MongoDB
-      const { data } = await axios.get(`/api/game/${sessionId}`);
-      this.sessionId = data._id;
-      this._applyPersistentState(data);
+      // Reset the ready flag when starting to load a new game
+      this.boardIsReady = false;
+
+      try {
+        console.log(`Pinia: Loading game state for session: ${sessionId}`);
+        const { data } = await apiClient.get(`/api/game/${sessionId}`);
+
+        // Log the data to make sure you're getting what you expect
+        console.log("Pinia: Received game state from server:", data);
+
+        // THE FIX: Use $patch to apply all properties from the server data
+        // to your store's state in one go.
+        this.$patch(data);
+
+        // Now that the state is updated, set the flag to true
+        this.boardIsReady = true;
+        console.log("Pinia: Game state loaded and board is ready!");
+      } catch (error) {
+        console.error("Pinia: Failed to load game state:", error);
+        // Optionally handle the error, e.g., show a message to the user
+      }
     },
 
     async saveGame() {
       // Save the current persistent state to MongoDB
       if (!this.sessionId) return;
       const persistentState = this._getPersistentState();
-      await axios.put(`/api/game/${this.sessionId}`, persistentState);
+      await apiClient.put(`/api/game/${this.sessionId}`, persistentState);
     },
 
     _getPersistentState() {

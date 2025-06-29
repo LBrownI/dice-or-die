@@ -1,9 +1,26 @@
 // src/views/HomeView.vue
+<script setup>
+import { useRouter } from "vue-router";
+import apiClient from "../services/api";
+
+const router = useRouter();
+
+async function startNewGame() {
+  try {
+    const response = await apiClient.post("/api/game/start");
+    const newSessionId = response.data._id;
+    router.push({ name: "Game", params: { sessionId: newSessionId } });
+  } catch (error) {
+    console.error("Could not start a new game:", error);
+  }
+}
+</script>
+
 <template>
   <div class="home-container">
     <h1>🎲 Dice or DIE ☠️</h1>
     <nav class="home-nav">
-      <router-link to="/game" class="nav-link">Play</router-link>
+      <button class="nav-link" @click="startNewGame">Play</button>
     </nav>
   </div>
 </template>

@@ -12,7 +12,7 @@ const routes = [
     component: HomeView,
   },
   {
-    path: "/game",
+    path: "/game/:sessionId",
     name: "Game",
     component: () => import("../views/GameView.vue"), // Lazy load GameView
   },
@@ -25,7 +25,7 @@ const routes = [
     path: "/login",
     name: "Login",
     component: () => import("../views/LoginView.vue"), // Lazy load LoginView
-  }
+  },
 ];
 
 const router = createRouter({

@@ -6,7 +6,7 @@ import vueDevTools from "vite-plugin-vue-devtools";
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: "/dice-or-die/",
+  base: "/",
   plugins: [vue(), vueDevTools()],
   resolve: {
     alias: {
