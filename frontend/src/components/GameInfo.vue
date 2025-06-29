@@ -3,21 +3,17 @@ import { computed } from "vue";
 import { useGameStore } from "../stores/game";
 
 const gameStore = useGameStore();
-const playerPosition     = computed(() => gameStore.playerPosition);
-const playerMoney        = computed(() => gameStore.playerMoney);
-const playerLap          = computed(() => gameStore.playerLap);
-const playerStage        = computed(() => gameStore.playerStage);
-const currentStageConfig = computed(() => gameStore.currentStageConfig);
-const lastDiceRoll       = computed(() => gameStore.lastDiceRoll);
-const gameMessage        = computed(() => gameStore.gameMessage);
+const playerPosition = computed(() => gameStore.playerPosition);
+const playerMoney = computed(() => gameStore.playerMoney);
+const playerLap = computed(() => gameStore.playerLap);
+const playerStage = computed(() => gameStore.playerStage);
+const lastDiceRoll = computed(() => gameStore.lastDiceRoll);
+const gameMessage = computed(() => gameStore.gameMessage);
 </script>
 
 <template>
   <div class="game-stats-panel">
-    <h3>
-      Etapa: {{ playerStage }} | Vuelta: {{ playerLap }} /
-      {{ currentStageConfig?.lapsToComplete || 3 }}
-    </h3>
+    <h3>Etapa: {{ playerStage }} | Vuelta: {{ playerLap }} / 3</h3>
     <p>⬇️Posición: {{ playerPosition }}</p>
     <p>🪙Dinero: ${{ playerMoney }}</p>
     <hr />

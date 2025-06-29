@@ -1,6 +1,6 @@
 <script setup>
 import { onMounted, computed } from "vue";
-import { useGameStore } from "../stores/game"; // Adjust path if store is elsewhere
+import { useGameStore } from "../stores/game";
 import { useRoute } from "vue-router";
 import GameBoard from "../components/GameBoard.vue";
 import GameInfo from "../components/GameInfo.vue";
@@ -10,7 +10,9 @@ import SummaryModal from "@/components/SummaryModal.vue";
 
 const gameStore = useGameStore();
 const route = useRoute();
+
 console.log("GameStore instance:", gameStore);
+
 const isGameOver = computed(() => gameStore.isGameOver);
 const gamePhase = computed(() => gameStore.gamePhase);
 const choiceDetails = computed(() => gameStore.choiceDetails);
@@ -61,6 +63,9 @@ const staticPlayerDisplayImageUrl = new URL(
 
 onMounted(async () => {
   preloadImages(imagePathsToPreload);
+  // Set assetsLoaded to true after preloading images
+  gameStore.assetsLoaded = true;
+
   const sessionId = route.params.sessionId;
   if (sessionId) {
     await gameStore.loadGame(sessionId);
@@ -70,31 +75,27 @@ onMounted(async () => {
 });
 
 function handleRollNormalDice() {
+  console.log("handleRollNormalDice called");
+  console.log("gamePhase:", gameStore.gamePhase);
+  console.log("isGameOver:", gameStore.isGameOver);
+  console.log("assetsLoaded:", gameStore.assetsLoaded);
+
   if (
     (gameStore.gamePhase === "rolling" || gameStore.gamePhase === "boss_encounter") &&
     !gameStore.isGameOver &&
     gameStore.assetsLoaded
   ) {
-    gameStore.rollDice();
+    console.log("Conditions met, calling rollDice(-1)");
+    // Use -1 to indicate normal dice roll (not a reserved die)
+    gameStore.rollDice(-1);
+  } else {
+    console.log("Conditions not met for rolling dice");
   }
 }
 
 function handleChoice(option) {
   gameStore.playerMakesChoice(option);
 }
-
-const currentSpeedText = computed(() => {
-  switch (gameStore.animationSpeedMultiplier) {
-    case 0:
-      return "Instant";
-    case 1:
-      return "Normal";
-    case 2:
-      return "Faster";
-    default:
-      return "Unknown";
-  }
-});
 
 function handleToggleSpeed() {
   gameStore.toggleAnimationSpeed();
@@ -127,12 +128,7 @@ function handleToggleSpeed() {
             <div class="normal-roll-button-container">
               <button
                 @click="handleRollNormalDice"
-                :disabled="
-                  isGameOver ||
-                  gameStore.isAnimating ||
-                  (gamePhase !== 'boss_encounter' && gamePhase !== 'rolling') ||
-                  (gamePhase === 'boss_encounter' && gameStore.remainingBossRolls <= 0)
-                "
+                :disabled="isGameOver || gameStore.isAnimating || gamePhase !== 'rolling'"
                 class="roll-button"
               >
                 Lanzar dado
@@ -140,7 +136,7 @@ function handleToggleSpeed() {
             </div>
             <div class="speed-control-container">
               <button @click="handleToggleSpeed" class="speed-button">
-                Velocidad de juego: {{ currentSpeedText }}
+                Velocidad de juego: {{ gameStore.currentSpeedText }}
               </button>
             </div>
           </div>

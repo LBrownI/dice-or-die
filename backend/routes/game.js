@@ -1,35 +1,27 @@
-// backend/routes/game.js
 const express = require("express");
 const router = express.Router();
 const GameSession = require("../models/GameSession");
-
-// Import your original game logic/config here
-// For example, you might have a services/gameLogic.js file
-// that contains the logic from your old Pinia store.
+const {
+  initializeNewGame,
+  handlePlayerTurn,
+  handlePlayerChoice,
+} = require("../services/gameLogic");
 
 // POST /api/game/start - Creates a new game session
 router.post("/start", async (req, res) => {
   try {
-    console.log("Backend: Received request to start a new game.");
+    console.log("Backend: Request received to start a new game.");
 
-    // SERVER-SIDE LOGIC TO CREATE THE GAME STATE
-    // This is where your old 'initializeGame' and 'setupStage' logic from Pinia belongs.
-    const initialGameState = {
-      // You can add a userId here if the user is logged in: req.user.id
-      playerStage: 1,
-      playerLap: 1,
-      playerMoney: 0,
-      playerPosition: 0,
-      isGameOver: false,
-      reservedDice: [],
-      // You would call a function here to generate the initial board layout
-      // boardSquares: generateInitialBoard(),
-    };
+    // 1. GENERATE the full initial game state using our logic service
+    const initialGameState = initializeNewGame();
 
+    // 2. CREATE a new Mongoose document with this complete state
     const session = new GameSession(initialGameState);
+
+    // 3. SAVE it to the database
     await session.save();
 
-    // Respond with the newly created and saved game session
+    // 4. RESPOND with the created session
     res.status(201).json(session);
   } catch (err) {
     console.error("Error creating new game:", err);
@@ -37,7 +29,7 @@ router.post("/start", async (req, res) => {
   }
 });
 
-// GET /api/game/:id - Gets an existing game session
+// GET /api/game/:id - Gets an existing game session (This route is already good!)
 router.get("/:id", async (req, res) => {
   try {
     const session = await GameSession.findById(req.params.id);
@@ -49,22 +41,59 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// PUT /api/game/:id - Updates a game session (e.g., after a turn)
-router.put("/:id", async (req, res) => {
+// POST /api/game/:id/roll
+router.post("/:id/roll", async (req, res) => {
   try {
-    // Note: It's better to have specific routes like /:id/roll
-    // than a generic PUT, but this works for now.
-    const session = await GameSession.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true } // This option returns the updated document
-    );
-    if (!session)
-      return res.status(404).json({ error: "Game session not found" });
-    res.json(session);
+    let session = await GameSession.findById(req.params.id);
+    if (!session || session.isGameOver)
+      return res.status(404).json({ message: "Game not found or is over" });
+
+    const { reservedDieIndex } = req.body;
+    session = handlePlayerTurn(session, reservedDieIndex);
+
+    // Tell Mongoose these nested objects have changed before saving
+    session.markModified("boardSquares");
+    session.markModified("choiceDetails");
+
+    const updatedSession = await session.save();
+    res.json(updatedSession);
   } catch (err) {
+    console.error("Error during /roll:", err);
     res.status(500).json({ error: err.message });
   }
 });
+
+// POST /api/game/:id/choice
+router.post("/:id/choice", async (req, res) => {
+  try {
+    let session = await GameSession.findById(req.params.id);
+    if (!session) return res.status(404).json({ message: "Game not found" });
+
+    const { chosenOption } = req.body;
+    if (!chosenOption)
+      return res.status(400).json({ message: "No choice provided" });
+
+    session = handlePlayerChoice(session, chosenOption);
+
+    session.markModified("boardSquares");
+    session.markModified("choiceDetails");
+
+    const updatedSession = await session.save();
+    res.json(updatedSession);
+  } catch (err) {
+    console.error("Error during /choice:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/game/:id/boss-pay
+router.post("/:id/boss-pay", (req, res) =>
+  res.json({ message: "Endpoint not implemented" })
+);
+
+// POST /api/game/:id/reset
+router.post("/:id/reset", (req, res) =>
+  res.json({ message: "Endpoint not implemented" })
+);
 
 module.exports = router;

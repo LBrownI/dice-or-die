@@ -1,15 +1,17 @@
 // src/views/HomeView.vue
 <script setup>
 import { useRouter } from "vue-router";
-import apiClient from "../services/api";
+import { useGameStore } from "../stores/game";
 
 const router = useRouter();
+const gameStore = useGameStore();
 
 async function startNewGame() {
   try {
-    const response = await apiClient.post("/api/game/start");
-    const newSessionId = response.data._id;
-    router.push({ name: "Game", params: { sessionId: newSessionId } });
+    const newGame = await gameStore.createGame();
+    if (newGame && newGame._id) {
+      router.push({ name: "Game", params: { sessionId: newGame._id } });
+    }
   } catch (error) {
     console.error("Could not start a new game:", error);
   }

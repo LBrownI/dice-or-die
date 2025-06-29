@@ -1,6 +1,6 @@
 <script setup>
 import { useGameStore } from "@/stores/game";
-import { STAGE_CONFIGS } from "@/stores/game";
+
 const gameStore = useGameStore();
 
 const money = gameStore.playerMoney;
@@ -9,7 +9,7 @@ const dice = gameStore.diceObtained;
 const bosses = gameStore.bossesDefeated;
 const perfectBosses = gameStore.perfectBossDefeats;
 const bribedBosses = gameStore.bribesBosses;
-const totalBosses = Object.keys(STAGE_CONFIGS).length;
+const totalBosses = 5; // Hardcoded for now, could be moved to a constant
 
 function getEnding() {
   if (bribedBosses === totalBosses) {
@@ -33,7 +33,9 @@ function getEnding() {
 }
 
 function restartGame() {
-  gameStore.resetGame();
+  // This will be implemented when we add the reset endpoint
+  console.log("Restart game requested");
+  window.location.href = "/";
 }
 </script>
 

@@ -22,13 +22,13 @@ const justTookDamage = ref(false);
 
 const gameStore = useGameStore();
 // Destructure reactive properties from the store
-const boardSquares        = computed(() => gameStore.boardSquares);
-const boardRows           = computed(() => gameStore.boardRows);
-const boardCols           = computed(() => gameStore.boardCols);
-const playerPosition      = computed(() => gameStore.playerPosition);
-const currentBoss         = computed(() => gameStore.currentBoss);
-const currentBossHP       = computed(() => gameStore.currentBossHP);
-const currentBossMaxHP    = computed(() => gameStore.currentBossMaxHP);
+const boardSquares = computed(() => gameStore.boardSquares);
+const boardRows = computed(() => gameStore.boardRows);
+const boardCols = computed(() => gameStore.boardCols);
+const playerPosition = computed(() => gameStore.playerPosition);
+const currentBoss = computed(() => gameStore.currentBoss);
+const currentBossHP = computed(() => gameStore.currentBossHP);
+const currentBossMaxHP = computed(() => gameStore.currentBossMaxHP);
 
 watch(currentBossHP, (newVal, oldVal) => {
   if (oldVal != null && newVal < oldVal) {
@@ -69,7 +69,7 @@ function getSquareGridPosition(squareId, R_val, C_val) {
   } else if (squareId >= R + C - 1 && squareId < R + C - 1 + R - 1) {
     // Right Column
     return { r: R - 1 - (squareId - (R + C - 1)), c: C };
-  } else if (squareId >= R + C - 1 + R - 1 && squareId < gameStore.totalBoardSquares) {
+  } else if (squareId >= R + C - 1 + R - 1 && squareId < boardSquares.value.length) {
     // Top Row
     return { r: 1, c: C - 1 - (squareId - (R + C - 1 + R - 1)) };
   }
@@ -186,7 +186,7 @@ const bossImageUrl = computed(() => {
           ❤️ Vida del jefe: {{ currentBossHP }} / {{ currentBossMaxHP }}
         </p>
 
-        <button class="pay-boss-button" @click="gameStore.payToDefeatBoss">
+        <button class="pay-boss-button" @click="() => console.log('Pay boss clicked')">
           💰 Pagar {{ gameStore.currentBoss?.bribeCost || "??" }} monedas para derrotar al jefe
         </button>
 

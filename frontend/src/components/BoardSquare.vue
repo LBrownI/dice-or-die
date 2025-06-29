@@ -43,7 +43,7 @@ const displayData = computed(() => {
     switch (sq.currentEffectType) {
       case "huge_money":
         icons = ["💰"]; // Money bag for huge money
-        text = `+$${sq.effectDetails?.amount || gameStore.currentHugeMoneyValue}`;
+        text = `+$${sq.effectDetails?.amount || "?"}`;
         break;
       case "choice_dice_money":
         icons = ["💰", "🎲"]; // Money bag and dice for this choice

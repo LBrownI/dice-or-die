@@ -1,5 +1,13 @@
 // src/utils/imageUtils.js
-import { DICE_TYPES } from "../stores/game"; // Assuming DICE_TYPES is exported from your store
+
+// Define DICE_TYPES locally since it's no longer in the store
+const DICE_TYPES = {
+  NORMAL: "Random",
+  FIXED: "Fixed",
+  D20: "20",
+  REVERSE_FIXED: "Reverse Fixed",
+  REVERSE_RANDOM: "Reverse Random",
+};
 
 /**
  * Generates the filename for a die based on its properties.
@@ -50,5 +58,4 @@ export function generateDieImageFilename(die, isFromLastRoll = false) {
 export function getDieImageUrl(filename) {
   if (!filename) return null;
   return `${import.meta.env.BASE_URL}assets/images/dice/${filename}`;
-
 }

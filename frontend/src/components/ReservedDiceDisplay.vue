@@ -5,7 +5,7 @@ import SingleDieDisplay from "./SingleDieDisplay.vue";
 
 const gameStore = useGameStore();
 // Destructure maxDiceInBag (or the getter diceBagCapacityDisplay)
-const reservedDice           = computed(() => gameStore.reservedDice);
+const reservedDice = computed(() => gameStore.reservedDice);
 const diceBagCapacityDisplay = computed(() => gameStore.diceBagCapacityDisplay);
 
 function useReservedDie(index) {
@@ -13,11 +13,8 @@ function useReservedDie(index) {
 
   if (gameStore.isGameOver || !die) return;
 
-  if (gameStore.gamePhase === "boss_encounter") {
-    gameStore.rollDiceForBoss(die);
-  } else if (gameStore.gamePhase === "rolling") {
-    gameStore.rollDice(index);
-  }
+  // Use the new rollDice action with the reserved die index
+  gameStore.rollDice(index);
 }
 </script>
 

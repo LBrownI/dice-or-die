@@ -29,8 +29,16 @@
 
 <script setup>
 import { ref, onMounted } from "vue";
-import { DICE_TYPES } from "@/stores/game"; // Assuming DICE_TYPES is exported from your game store
-import { generateDieImageFilename, getDieImageUrl } from "@/utils/imageUtils"; // Adjust path if needed
+import { generateDieImageFilename, getDieImageUrl } from "@/utils/imageUtils";
+
+// Define DICE_TYPES locally since it's no longer in the store
+const DICE_TYPES = {
+  NORMAL: "Random",
+  FIXED: "Fixed",
+  D20: "20",
+  REVERSE_FIXED: "Reverse Fixed",
+  REVERSE_RANDOM: "Reverse Random",
+};
 
 const diceAssets = ref([]);
 const isLoading = ref(true);

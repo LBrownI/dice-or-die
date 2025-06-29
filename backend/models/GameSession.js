@@ -11,7 +11,11 @@ const gameSessionSchema = new mongoose.Schema(
     playerMoney: { type: Number, default: 0 },
     playerLap: { type: Number, default: 1 },
     playerStage: { type: Number, default: 1 },
-    lastDiceRoll: { type: Number, default: null },
+    lastDiceRoll: {
+      // previously lastDiceRoll: { type: Number, default: null }
+      type: { type: String }, // e.g., 'Random', 'Fixed'
+      value: { type: Number }, // e.g., 6
+    },
     isGameOver: { type: Boolean, default: false },
     gamePhase: { type: String, default: "rolling" }, // e.g., 'rolling', 'choosing', 'moving'
     choiceDetails: {
@@ -47,7 +51,6 @@ const gameSessionSchema = new mongoose.Schema(
     diceRollAnimationBaseDuration: { type: Number, default: 1000 },
     playerStepBaseDuration: { type: Number, default: 300 },
     lastPlayerPositionBeforeThisMove: { type: Number, default: 0 },
-    assetsLoaded: { type: Boolean, default: false },
 
     // Summary Stats
     totalRolls: { type: Number, default: 0 },
