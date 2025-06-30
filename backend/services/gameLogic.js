@@ -318,6 +318,9 @@ function initializeNewGame() {
     isGameOver: false,
     gamePhase: "rolling",
     choiceDetails: null,
+    playerCharacter: "knight", // valor por defecto
+    playerSkin: "blue",        // valor por defecto
+
 
     // Board State
     boardRows: 0,

@@ -18,6 +18,10 @@ import { ref, watch, computed } from "vue";
 import { useGameStore } from "../stores/game"; // Adjust path if needed
 import BoardSquare from "./BoardSquare.vue";
 
+const props = defineProps({
+  playerImageUrl: {type: String, required: true}
+});
+
 const justTookDamage = ref(false);
 
 const gameStore = useGameStore();
@@ -46,9 +50,7 @@ const STATIC_PLAYER_IMAGE_DIMENSIONS = {
   width: 40,
   height: 40,
 };
-// Assuming knight_static.png is in src/assets/sprites/
-const staticPlayerImageUrl = new URL("/assets/images/sprites/knight_static.png", import.meta.url)
-  .href;
+
 // Helper function to get the 1-indexed grid row and column for a square ID
 // Path: Down -> Right -> Up -> Left (starting top-left at 0)
 // This function is crucial for both BoardSquare and staticPlayerMarker positioning
@@ -165,12 +167,13 @@ const bossImageUrl = computed(() => {
         :style="getSquarePositionStyle(square.id, boardRows, boardCols)"
       />
       <img
-        v-if="boardSquares.length > 0"
-        :src="staticPlayerImageUrl"
-        alt="Player"
-        class="static-player-marker"
-        :style="staticPlayerMarkerStyle"
-      />
+  v-if="boardSquares.length > 0"
+  :src="playerImageUrl"          
+  alt="Player"
+  class="static-player-marker"
+  :style="staticPlayerMarkerStyle"
+/>
+
     </div>
 
     <div v-if="gameStore.showGeneralRollAnimation" class="general-die-result">

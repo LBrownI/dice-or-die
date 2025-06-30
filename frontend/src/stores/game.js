@@ -31,6 +31,9 @@ export const useGameStore = defineStore("game", () => {
   const showGeneralRoll = ref(false);
   const boardIsReady = ref(false);
   const gameMessage = ref("");
+  const playerCharacter = ref("knight"); // valor por defecto
+  const playerSkin = ref("blue");        // valor por defecto
+
 
   // Boss-related state
   const currentBoss = ref(null);
@@ -74,19 +77,28 @@ export const useGameStore = defineStore("game", () => {
   async function createGame() {
     try {
       boardIsReady.value = false;
-      console.log("Pinia: Requesting new game from server...");
-      const response = await apiClient.post("/api/game/start");
+      console.log("Pinia: Requesting new game from server…");
 
-      // Use $patch to update all state properties at once
+      // ‼️ Construimos el body con el personaje/skin elegidos en el store
+      const body = {
+        playerCharacter: playerCharacter.value, // “knight”, “rogue”, “wizard”, …
+        playerSkin: playerSkin.value,           // “blue”, “green”, “purple”, …
+      };
+
+      // Usa la misma instancia de axios (apiClient)
+      const response = await apiClient.post("/api/game/start", body);
+
+      // Aplicamos todo el estado que devuelve el backend
       this.$patch(response.data);
 
       boardIsReady.value = true;
       console.log("Pinia: New game created, board is ready!");
-      return response.data; // Return the new session data
+      return response.data;
     } catch (error) {
       console.error("Pinia: Failed to create game", error);
     }
   }
+
 
   async function loadGame(sessionId) {
     try {
@@ -252,6 +264,8 @@ export const useGameStore = defineStore("game", () => {
     perfectBossDefeats,
     bribesBosses,
     showSummaryModal,
+    playerCharacter,
+    playerSkin,
 
     // Getters
     diceBagCapacityDisplay,

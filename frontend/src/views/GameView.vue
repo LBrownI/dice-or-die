@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, computed } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { useGameStore } from "../stores/game";
 import { useRoute } from "vue-router";
 import GameBoard from "../components/GameBoard.vue";
@@ -7,9 +7,17 @@ import GameInfo from "../components/GameInfo.vue";
 import ReservedDiceDisplay from "../components/ReservedDiceDisplay.vue";
 import ChoiceModal from "../components/ChoiceModal.vue";
 import SummaryModal from "@/components/SummaryModal.vue";
+import CharacterSelectorModal from "../components/CharacterSelectorModal.vue";
 
 const gameStore = useGameStore();
 const route = useRoute();
+const showCharacterSelector = ref(false);
+
+const characters = [
+  { id: "knight", name: "Caballero", skins: ["blue", "green", "red", "black"] },
+  { id: "thief", name: "Ladrón", skins: ["blue", "green", "purple", "red"] },
+  { id: "wizard", name: "Mago", skins: ["blue", "green", "purple", "red"] },
+];
 
 console.log("GameStore instance:", gameStore);
 
@@ -55,11 +63,26 @@ function preloadImages(imagePaths) {
   });
 }
 
-// URL for the static player image in the display panel
-const staticPlayerDisplayImageUrl = new URL(
-  "/assets/images/sprites/knight_static.png",
-  import.meta.url
-).href;
+const dynamicPlayerImage = computed(() => {
+  const base = import.meta.env.BASE_URL; // normalmente "/"
+  const character = gameStore.playerCharacter; // "knight", "thief", "wizard"
+  const skin = gameStore.playerSkin; // "blue", "green", …
+  // ► incluye la subcarpeta del personaje
+  return `${base}assets/images/characters/${character}/${character}_${skin}.png`;
+});
+
+function getCharacterDisplayName(id) {
+  switch (id) {
+    case "knight":
+      return "Caballero";
+    case "rogue":
+      return "Ladrón";
+    case "wizard":
+      return "Mago";
+    default:
+      return "Personaje";
+  }
+}
 
 onMounted(async () => {
   preloadImages(imagePathsToPreload);
@@ -69,6 +92,7 @@ onMounted(async () => {
   const sessionId = route.params.sessionId;
   if (sessionId) {
     await gameStore.loadGame(sessionId);
+    console.log(">>> Estado del juego cargado:", gameStore);
   } else {
     console.error("No game session ID found in the URL.");
   }
@@ -108,18 +132,25 @@ function handleToggleSpeed() {
       <div class="main-game-area">
         <div class="left-panel-area">
           <div class="player-display-area">
+            <!-- Reemplaza tu botón actual  -->
+            <button class="change-hero-badge" @click="showCharacterSelector = true">
+              Cambiar héroe
+            </button>
+
             <img
-              :src="staticPlayerDisplayImageUrl"
-              alt="Player Knight"
+              :src="dynamicPlayerImage"
+              :alt="`Personaje: ${gameStore.playerCharacter}`"
               class="large-static-player-image"
             />
-            <h3 class="player-name">El Caballero</h3>
+            <h3 class="player-name">
+              {{ getCharacterDisplayName(gameStore.playerCharacter) }}
+            </h3>
           </div>
           <GameInfo class="game-info-content" />
         </div>
 
         <div class="game-board-container">
-          <GameBoard class="game-board-component" />
+          <GameBoard :player-image-url="dynamicPlayerImage" class="game-board-component" />
         </div>
 
         <div class="right-action-panel">
@@ -141,6 +172,16 @@ function handleToggleSpeed() {
             </div>
           </div>
         </div>
+        <CharacterSelectorModal
+          v-if="showCharacterSelector"
+          :model-value-character="gameStore.playerCharacter"
+          :model-value-skin="gameStore.playerSkin"
+          :characters="characters"
+          @update:character="(c) => (gameStore.playerCharacter = c)"
+          @update:skin="(s) => (gameStore.playerSkin = s)"
+          @confirm="showCharacterSelector = false"
+          @cancel="showCharacterSelector = false"
+        />
       </div>
 
       <ChoiceModal
@@ -187,7 +228,7 @@ function handleToggleSpeed() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 15px;
+  padding: 40px;
   border: 1px solid #b0c4de;
   background-color: #e6eef7;
   border-radius: 8px;
@@ -299,4 +340,35 @@ function handleToggleSpeed() {
   text-align: center;
   margin-top: 100px;
 }
+
+.player-display-area {
+  position: relative;
+}
+
+/* botón «Cambiar héroe» centrado y con estilo pill */
+.change-hero-badge {
+  position: absolute;
+  top: 6px;
+  left: 50%;                /* centramos horizontalmente */
+  transform: translate(-50%, 0);
+  
+  padding: 4px 14px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  
+  background: #f0f8ff;      /* mismo fondo claro del panel */
+  color: #2c3e50;
+  border: 1px solid #b0c4de;
+  border-radius: 9999px;    /* pill */
+  
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,.15);
+  transition: background-color .15s, transform .1s;
+}
+
+.change-hero-badge:hover {
+  background: #e6eef7;
+  transform: translate(-50%, -1px); /* solo levanta 1 px en hover */
+}
+
 </style>

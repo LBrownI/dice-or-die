@@ -12,22 +12,31 @@ router.post("/start", async (req, res) => {
   try {
     console.log("Backend: Request received to start a new game.");
 
-    // 1. GENERATE the full initial game state using our logic service
+    // 1. GENERATE the full initial game state
     const initialGameState = initializeNewGame();
 
-    // 2. CREATE a new Mongoose document with this complete state
+    // 2. OPTIONAL: Set character and skin if provided by frontend
+    if (req.body.playerCharacter) {
+      initialGameState.playerCharacter = req.body.playerCharacter;
+    }
+    if (req.body.playerSkin) {
+      initialGameState.playerSkin = req.body.playerSkin;
+    }
+
+    // 3. CREATE a new Mongoose document with this complete state
     const session = new GameSession(initialGameState);
 
-    // 3. SAVE it to the database
+    // 4. SAVE it to the database
     await session.save();
 
-    // 4. RESPOND with the created session
+    // 5. RESPOND with the created session
     res.status(201).json(session);
   } catch (err) {
     console.error("Error creating new game:", err);
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // GET /api/game/:id - Gets an existing game session (This route is already good!)
 router.get("/:id", async (req, res) => {

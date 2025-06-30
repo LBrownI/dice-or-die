@@ -11,6 +11,8 @@ const gameSessionSchema = new mongoose.Schema(
     playerMoney: { type: Number, default: 0 },
     playerLap: { type: Number, default: 1 },
     playerStage: { type: Number, default: 1 },
+    playerCharacter: { type: String, default: "knight" },
+    playerSkin: { type: String, default: "blue" },
     lastDiceRoll: {
       // previously lastDiceRoll: { type: Number, default: null }
       type: { type: String }, // e.g., 'Random', 'Fixed'
