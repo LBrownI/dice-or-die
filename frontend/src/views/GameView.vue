@@ -293,7 +293,13 @@ function openSkinChanger() {
         @confirm="showSkinChangerModal = false"
         @cancel="showSkinChangerModal = false"
       />
-      <ChoiceModal v-if="choiceDetails" :details="choiceDetails" @player-choice="handleChoice" />
+      <transition name="choice-pop">
+        <ChoiceModal
+          v-if="choiceDetails"
+          :details="choiceDetails"
+          @player-choice="handleChoice"
+        />
+      </transition>
       <SummaryModal v-if="gameStore.showSummaryModal" />
     </template>
     <div v-else class="loading-message">Loading game...</div>
@@ -562,6 +568,24 @@ function openSkinChanger() {
   background: rgba(0, 0, 0, 0.85);
   z-index: 30;          /* ⬅️ por debajo de minion (40) y boss (50)   */
   pointer-events: none; /* no intercepta clics */
+}
+
+/* ---------- ChoiceModal fade-in / pop-in ---------- */
+.choice-pop-enter-active,
+.choice-pop-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.choice-pop-enter-from,
+.choice-pop-leave-to {
+  opacity: 0;
+  transform: scale(0.5);
+}
+
+.choice-pop-enter-to,
+.choice-pop-leave-from {
+  opacity: 1;
+  transform: scale(1);
 }
 
 </style>
