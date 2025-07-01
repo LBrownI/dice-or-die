@@ -114,13 +114,13 @@ onUnmounted(() => {
 
 <style scoped>
 .main-menu-bg {
-  position: fixed;        /* se “pega” a la ventana */
-  inset: 0;               /* top:0; right:0; bottom:0; left:0 */
+  position: fixed; /* se “pega” a la ventana */
+  inset: 0; /* top:0; right:0; bottom:0; left:0 */
   background: radial-gradient(circle at 60% 40%, #2e2e4d 0%, #b02a2a 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;       /* por si algo interno crece accidentalmente */
+  overflow: hidden; /* por si algo interno crece accidentalmente */
 }
 
 .main-menu-container {

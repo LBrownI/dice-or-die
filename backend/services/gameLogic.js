@@ -231,6 +231,17 @@ function setupLapEffects(gameState) {
   const squareIdToIndexMap = new Map(
     gameState.boardSquares.map((sq, index) => [sq.id, index])
   );
+  /* =========================================================
+     ⚠️  Fuerza la esquina inferior derecha a -$20          ⚠️
+     ====================================================== */
+  const brCornerId = getBottomRightCornerId(config);
+  const brIndex = squareIdToIndexMap.get(brCornerId);
+  if (brIndex !== undefined) {
+    const brSquare = gameState.boardSquares[brIndex];
+    brSquare.currentEffectType = "normal_money"; // usa el case ya existente
+    brSquare.effectDetails = { amount: -20 };
+    brSquare.isTempBad = true; // para pintarla en rojo, etc.
+  }
   let availableCandidateIds = [
     ...getCandidateSquareIds(gameState.boardSquares, config),
   ];
@@ -462,11 +473,21 @@ function handlePlayerTurn(gameState, reservedDieIndex, user) {
   /* --- Resultado del dado --- */
   let steps;
   switch (dieToRoll.type) {
-    case "Fixed":          steps =  dieToRoll.value || 1;   break;
-    case "20":             steps =  getRandomInt(1, 20);    break;
-    case "Reverse Fixed":  steps = -(dieToRoll.value || 1); break;
-    case "Reverse Random": steps = -getRandomInt(1, 6);     break;
-    default:               steps =  getRandomInt(1, 6);     break;
+    case "Fixed":
+      steps = dieToRoll.value || 1;
+      break;
+    case "20":
+      steps = getRandomInt(1, 20);
+      break;
+    case "Reverse Fixed":
+      steps = -(dieToRoll.value || 1);
+      break;
+    case "Reverse Random":
+      steps = -getRandomInt(1, 6);
+      break;
+    default:
+      steps = getRandomInt(1, 6);
+      break;
   }
 
   /* --- placeholder para animación --- */
@@ -588,16 +609,16 @@ function handlePlayerTurn(gameState, reservedDieIndex, user) {
       console.log(`[BOSS ENCOUNTER] Boss failed. Game over.`);
       return { updatedState: gameState, updatedUser: user, movementPath };
     }
-     // El jefe sigue vivo y todavía tienes dados → continúa el combate
+    // El jefe sigue vivo y todavía tienes dados → continúa el combate
     gameState.gameMessage =
       skillMessage +
       `You hit the boss for ${damage}! HP left: ${gameState.currentBossHP}.`;
-    
-      return { updatedState: gameState, updatedUser: user, movementPath };
+
+    return { updatedState: gameState, updatedUser: user, movementPath };
   }
 
   if (gameState.gamePhase === "minion_encounter") {
-        const minionSquare = gameState.boardSquares.find(
+    const minionSquare = gameState.boardSquares.find(
       (sq) => sq.id === gameState.playerPosition
     );
     if (
@@ -657,15 +678,17 @@ function handlePlayerTurn(gameState, reservedDieIndex, user) {
     }
 
     // Garantiza un Random para el próximo tiro,
-   // aunque sigamos en minion_encounter
-   const hasRandom = gameState.reservedDice.some(d => d.type === "Random");
-   if (!hasRandom) {
-     if (gameState.reservedDice.length < gameState.maxDiceInBag) {
-       gameState.reservedDice.push({ type: "Random" });
-     } else {
-       gameState.reservedDice[gameState.reservedDice.length - 1] = { type: "Random" };
-     }
-   }
+    // aunque sigamos en minion_encounter
+    const hasRandom = gameState.reservedDice.some((d) => d.type === "Random");
+    if (!hasRandom) {
+      if (gameState.reservedDice.length < gameState.maxDiceInBag) {
+        gameState.reservedDice.push({ type: "Random" });
+      } else {
+        gameState.reservedDice[gameState.reservedDice.length - 1] = {
+          type: "Random",
+        };
+      }
+    }
     return { updatedState: gameState, updatedUser: user, movementPath };
   }
 
@@ -681,7 +704,7 @@ function handlePlayerTurn(gameState, reservedDieIndex, user) {
     for (let i = 0; i < Math.abs(steps); i++) {
       pos = (pos + dir + totalBoardSquares) % totalBoardSquares;
       movementPath.push(pos);
-      if (pos === 0) break;   // parar en la salida si se completa la vuelta
+      if (pos === 0) break; // parar en la salida si se completa la vuelta
     }
   }
 
@@ -690,125 +713,126 @@ function handlePlayerTurn(gameState, reservedDieIndex, user) {
 
   let newPosition;
   if (gameState.playerPosition === 0 && steps < 0) {
-    newPosition = 0;                                // reversa desde la salida
+    newPosition = 0; // reversa desde la salida
   } else if (steps >= 0) {
     const distToLapEnd = totalBoardSquares - gameState.playerPosition;
-    newPosition = steps >= distToLapEnd ? 0
-                : gameState.playerPosition + steps;
+    newPosition = steps >= distToLapEnd ? 0 : gameState.playerPosition + steps;
   } else {
-    newPosition = (gameState.playerPosition + steps + totalBoardSquares) %
-                  totalBoardSquares;
+    newPosition =
+      (gameState.playerPosition + steps + totalBoardSquares) %
+      totalBoardSquares;
   }
   gameState.playerPosition = newPosition;
 
   /* -------- efectos al aterrizar --------- */
-const landedSquare = gameState.boardSquares.find(
-  (sq) => sq.id === gameState.playerPosition
-);
+  const landedSquare = gameState.boardSquares.find(
+    (sq) => sq.id === gameState.playerPosition
+  );
 
-if (landedSquare) {
-  let landedOnChoiceSquare = false;
+  if (landedSquare) {
+    let landedOnChoiceSquare = false;
 
-  switch (landedSquare.currentEffectType) {
-    /* --- DINERO --- */
-    case "huge_money": {
-      const amt =
-        landedSquare.effectDetails?.amount ||
-        calculateCurrentHugeMoneyValue(gameState.playerStage);
-      gameState.playerMoney += amt;
-      landedSquare.currentEffectType = "none";
-      gameState.gameMessage = `You found a stash! +$${amt}`;
-      break;
-    }
-    case "normal_money": {
-      const amt = landedSquare.effectDetails?.amount || 1;
-      gameState.playerMoney += amt;
-      landedSquare.currentEffectType = "none";
-      gameState.gameMessage = `Money! +$${amt}`;
-      break;
-    }
+    switch (landedSquare.currentEffectType) {
+      /* --- DINERO --- */
+      case "huge_money": {
+        const amt =
+          landedSquare.effectDetails?.amount ||
+          calculateCurrentHugeMoneyValue(gameState.playerStage);
+        gameState.playerMoney += amt;
+        landedSquare.currentEffectType = "none";
+        gameState.gameMessage = `You found a stash! +$${amt}`;
+        break;
+      }
+      case "normal_money": {
+        const amt = landedSquare.effectDetails?.amount || 1;
+        gameState.playerMoney += amt;
+        landedSquare.currentEffectType = "none";
+        gameState.gameMessage =
+          amt >= 0 ? `Money! +$${amt}` : `Perdiste $${Math.abs(amt)} 😱`;
+        break;
+      }
 
-    /* --- CASILLAS DE ELECCIÓN --- */
-    case "choice_dice_money": {
-      landedOnChoiceSquare = true;
-      gameState.gamePhase = "awaiting_choice";
+      /* --- CASILLAS DE ELECCIÓN --- */
+      case "choice_dice_money": {
+        landedOnChoiceSquare = true;
+        gameState.gamePhase = "awaiting_choice";
 
-      const dieOption = getRandomChoiceDiceOption();
-      gameState.choiceDetails = {
-        type: "dice_vs_money",
-        message: "Choose your reward:",
-        options: [
-          {
-            text: `Get $${10 * gameState.playerStage}`,
-            action: "get_money_bonus",
-            value: 10 * gameState.playerStage,
-            visual: { type: "money" },
-          },
-          {
-            text: `Get a ${dieOption.type}${
-              dieOption.value ? ` (${dieOption.value})` : ""
-            } die`,
+        const dieOption = getRandomChoiceDiceOption();
+        gameState.choiceDetails = {
+          type: "dice_vs_money",
+          message: "Choose your reward:",
+          options: [
+            {
+              text: `Get $${10 * gameState.playerStage}`,
+              action: "get_money_bonus",
+              value: 10 * gameState.playerStage,
+              visual: { type: "money" },
+            },
+            {
+              text: `Get a ${dieOption.type}${
+                dieOption.value ? ` (${dieOption.value})` : ""
+              } die`,
+              action: "get_chosen_die",
+              value: dieOption,
+              visual: { type: "die", dieData: dieOption },
+            },
+          ],
+        };
+
+        gameState.gameMessage = "Choose your reward!";
+        break;
+      }
+
+      case "choice_pick_die": {
+        landedOnChoiceSquare = true;
+        gameState.gamePhase = "awaiting_choice";
+
+        const dieOptions = getRandomPickDieOptions();
+        gameState.choiceDetails = {
+          type: "pick_die",
+          message: "Choose a die to add to your pouch:",
+          options: dieOptions.map((die) => ({
+            text: `${die.type}${die.value ? ` (${die.value})` : ""} die`,
             action: "get_chosen_die",
-            value: dieOption,
-            visual: { type: "die", dieData: dieOption },
-          },
-        ],
-      };
+            value: die,
+            visual: { type: "die", dieData: die },
+          })),
+        };
 
-      gameState.gameMessage = "Choose your reward!";
-      break;
+        gameState.gameMessage = "Choose a die for your pouch!";
+        break;
+      }
+
+      /* --- ENFRENTAMIENTO CON MINION --- */
+      case "minion_encounter": {
+        landedOnChoiceSquare = true; // evita que se añada dado gratis
+
+        /* repón el Random mientras seguimos en 'rolling' */
+        ensureRandomDie(gameState); // ← ahora SÍ funciona
+
+        gameState.gamePhase = "minion_encounter"; // después cambia la fase
+        const hp = landedSquare.effectDetails?.hp ?? 1;
+        gameState.gameMessage = `A minion appears! Defeat it! (HP: ${hp})`;
+        break;
+      }
+
+      /* --- CASILLA VACÍA --- */
+      default:
+        gameState.gameMessage = ""; // nada que decir
+        break;
     }
 
-    case "choice_pick_die": {
-      landedOnChoiceSquare = true;
-      gameState.gamePhase = "awaiting_choice";
-
-      const dieOptions = getRandomPickDieOptions();
-      gameState.choiceDetails = {
-        type: "pick_die",
-        message: "Choose a die to add to your pouch:",
-        options: dieOptions.map((die) => ({
-          text: `${die.type}${die.value ? ` (${die.value})` : ""} die`,
-          action: "get_chosen_die",
-          value: die,
-          visual: { type: "die", dieData: die },
-        })),
-      };
-
-      gameState.gameMessage = "Choose a die for your pouch!";
-      break;
+    /* Regla general: si NO es elección/combate, regala un dado extra */
+    if (
+      !landedOnChoiceSquare &&
+      gameState.reservedDice.length < gameState.maxDiceInBag
+    ) {
+      gameState.reservedDice.push({ type: "Random" });
+      gameState.gameMessage += gameState.gameMessage
+        ? " (New die added to pouch!)"
+        : "Landed on a safe square. New die added to pouch!";
     }
-
-    /* --- ENFRENTAMIENTO CON MINION --- */
-    case "minion_encounter": {
-      landedOnChoiceSquare = true;          // evita que se añada dado gratis
-
-      /* repón el Random mientras seguimos en 'rolling' */
-      ensureRandomDie(gameState);                 // ← ahora SÍ funciona
-
-      gameState.gamePhase = "minion_encounter";   // después cambia la fase
-      const hp = landedSquare.effectDetails?.hp ?? 1;
-      gameState.gameMessage = `A minion appears! Defeat it! (HP: ${hp})`;
-      break;
-    }
-
-    /* --- CASILLA VACÍA --- */
-    default:
-      gameState.gameMessage = "";            // nada que decir
-      break;
   }
-
-  /* Regla general: si NO es elección/combate, regala un dado extra */
-  if (
-    !landedOnChoiceSquare &&
-    gameState.reservedDice.length < gameState.maxDiceInBag
-  ) {
-    gameState.reservedDice.push({ type: "Random" });
-    gameState.gameMessage += gameState.gameMessage
-      ? " (New die added to pouch!)"
-      : "Landed on a safe square. New die added to pouch!";
-  }
-}
 
   /* --- comprobar fin de vuelta / jefe --- */
   const justCompletedLap =
@@ -817,8 +841,7 @@ if (landedSquare) {
 
   if (justCompletedLap) {
     gameState.playerLap++;
-    gameState.gameMessage =
-      `Lap ${gameState.playerLap} of ${config.lapsToComplete} completed!`;
+    gameState.gameMessage = `Lap ${gameState.playerLap} of ${config.lapsToComplete} completed!`;
     if (gameState.playerLap > config.lapsToComplete) {
       return { updatedState: startBossEncounter(gameState), updatedUser: user };
     }
@@ -828,7 +851,6 @@ if (landedSquare) {
   ensureRandomDie(gameState); // Asegurar al menos 1 Random die
   return { updatedState: gameState, updatedUser: user, movementPath };
 }
-
 
 function handlePlayerChoice(gameState, chosenOption) {
   if (gameState.gamePhase !== "awaiting_choice") {
@@ -866,21 +888,23 @@ function handlePlayerChoice(gameState, chosenOption) {
   gameState.gamePhase = "rolling";
 
   ensureRandomDie(gameState);
-  return gameState;         // el router muta `session` directamente
+  return gameState; // el router muta `session` directamente
 }
 
 /* --- helper para garantizar 1 Random cuando estamos en fase rolling --- */
 function ensureRandomDie(gameState) {
-  if (gameState.gamePhase !== "rolling") return;           // nunca en boss/minion
+  if (gameState.gamePhase !== "rolling") return; // nunca en boss/minion
 
-  const hasRandom = gameState.reservedDice.some(d => d.type === "Random");
+  const hasRandom = gameState.reservedDice.some((d) => d.type === "Random");
   if (hasRandom) return;
 
   if (gameState.reservedDice.length < gameState.maxDiceInBag) {
     gameState.reservedDice.push({ type: "Random" });
   } else {
     // bolsa llena y sin Random → sustituimos el último dado
-    gameState.reservedDice[gameState.reservedDice.length - 1] = { type: "Random" };
+    gameState.reservedDice[gameState.reservedDice.length - 1] = {
+      type: "Random",
+    };
   }
 }
 

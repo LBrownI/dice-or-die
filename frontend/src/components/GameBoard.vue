@@ -322,7 +322,7 @@ const bossImageUrl = computed(() => {
 .minion-die-result {
   font-size: 4rem;
   font-weight: bold;
-  color: #f7e46a;          /* amarillo dorado */
+  color: #f7e46a; /* amarillo dorado */
   margin-top: 10px;
   animation: pop-in 1s ease-out;
   text-shadow: 0 0 10px #fff, 0 0 20px #fff;

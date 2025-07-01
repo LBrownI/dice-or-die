@@ -8,7 +8,6 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-
 export const useGameStore = defineStore("game", () => {
   // --- STATE ---
   // All state properties are now simple refs, populated by the server.
@@ -155,14 +154,13 @@ export const useGameStore = defineStore("game", () => {
     }
   }
 
-// Cambia la velocidad y avisa al backend
+  // Cambia la velocidad y avisa al backend
   async function setAnimationSpeed(nextMultiplier) {
     if (!_id.value) return;
     try {
-      const res = await apiClient.post(
-        `/api/game/${_id.value}/speed`,
-        { multiplier: nextMultiplier }
-      );
+      const res = await apiClient.post(`/api/game/${_id.value}/speed`, {
+        multiplier: nextMultiplier,
+      });
       animationSpeedMultiplier.value = res.data.animationSpeedMultiplier;
       gameMessage.value =
         animationSpeedMultiplier.value === 0
@@ -187,7 +185,6 @@ export const useGameStore = defineStore("game", () => {
     setTimeout(() => (showBossRollAnimation.value = false), 1000);
   }
 
-
   async function rollDice(reservedDieIndex = -1) {
     if (!_id.value || isAnimating.value) return;
     isAnimating.value = true;
@@ -207,9 +204,10 @@ export const useGameStore = defineStore("game", () => {
       // --- ANIMATION & STATE PATCH ---
       lastGeneralRoll.value = updatedState.lastDiceRoll?.value;
       showGeneralRollAnimation.value = true;
-      setTimeout(() => { 
-        showGeneralRollAnimation.value = false; }, 1000);
-      
+      setTimeout(() => {
+        showGeneralRollAnimation.value = false;
+      }, 1000);
+
       if (updatedState.gamePhase === "boss_encounter") {
         triggerBossRollAnimation(updatedState.lastDiceRoll?.value);
       }
@@ -221,7 +219,6 @@ export const useGameStore = defineStore("game", () => {
       }
       // Finalmente aplicamos el estado “oficial”
       this.$patch(updatedState);
-      
     } catch (error) {
       console.error("Pinia: Failed to roll dice", error);
     } finally {

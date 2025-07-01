@@ -92,7 +92,7 @@ router.post("/:id/roll", async (req, res) => {
 
     // Guardamos al usuario si se modificó
     if (user && updatedUser) {
-      user.stats        = updatedUser.stats;
+      user.stats = updatedUser.stats;
       user.achievements = updatedUser.achievements;
       await user.save();
     }
@@ -308,6 +308,5 @@ router.post("/:id/speed", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
 
 module.exports = router;

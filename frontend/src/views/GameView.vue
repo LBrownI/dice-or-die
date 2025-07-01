@@ -18,13 +18,94 @@ const showCharacterSelector = ref(false);
 const showOptionsModal = ref(false);
 const showSkinChangerModal = ref(false);
 const audioPlayer = ref(null);
-const diceSfxList = ref([]);  
+const diceSfxList = ref([]);
+const fightPlayer = ref(null);
 
 const characters = [
   { id: "knight", name: "Knight", skins: ["blue", "green", "red", "black"] },
   { id: "thief", name: "Thief", skins: ["blue", "green", "purple", "red"] },
   { id: "wizard", name: "Wizard", skins: ["blue", "green", "purple", "red"] },
 ];
+
+const imagePathsToPreload = [
+  // Dados Normales
+  `${import.meta.env.BASE_URL}assets/images/dice/die_d6.png`,
+  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_1.png`,
+  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_2.png`,
+  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_3.png`,
+  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_4.png`,
+  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_5.png`,
+  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_6.png`,
+
+  // Dados Especiales
+  `${import.meta.env.BASE_URL}assets/images/dice/die_d20.png`,
+
+  // Dados Reversa
+  `${import.meta.env.BASE_URL}assets/images/dice/die_d6_reverse.png`,
+  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_reverse_1.png`,
+  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_reverse_2.png`,
+  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_reverse_3.png`,
+  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_reverse_4.png`,
+  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_reverse_5.png`,
+  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_reverse_6.png`,
+
+  // Jefes
+  `${import.meta.env.BASE_URL}assets/images/bosses/dark_godcat.webp`,
+  `${import.meta.env.BASE_URL}assets/images/bosses/dragon_treasurer.png`,
+  `${import.meta.env.BASE_URL}assets/images/bosses/greedy_goblin_king.webp`,
+  `${import.meta.env.BASE_URL}assets/images/bosses/orc_general.png`,
+  `${import.meta.env.BASE_URL}assets/images/bosses/tax_collector.png`,
+];
+
+// Preload sound effects
+const diceSfxPaths = [
+  `${import.meta.env.BASE_URL}assets/sfx/dice-roll-1.mp3`,
+  `${import.meta.env.BASE_URL}assets/sfx/dice-roll-2.mp3`,
+  `${import.meta.env.BASE_URL}assets/sfx/dice-roll-3.mp3`,
+  `${import.meta.env.BASE_URL}assets/sfx/dice-roll-4.mp3`,
+];
+
+const fightTrackPaths = [
+  `${import.meta.env.BASE_URL}assets/soundtrack/battle/music-battle-1.mp3`,
+  `${import.meta.env.BASE_URL}assets/soundtrack/battle/music-battle-2.mp3`,
+  `${import.meta.env.BASE_URL}assets/soundtrack/battle/music-battle-3.mp3`,
+  `${import.meta.env.BASE_URL}assets/soundtrack/battle/music-battle-4.mp3`,
+];
+
+// --- helpers de volumen -----------------------------
+function fadeAudio(audioEl, targetVol, ms = 1000) {
+  if (!audioEl) return Promise.resolve();
+  const startVol = audioEl.volume;
+  const delta = targetVol - startVol;
+  if (Math.abs(delta) < 0.01) {
+    audioEl.volume = targetVol;
+    return Promise.resolve();
+  }
+
+  const steps = Math.ceil(ms / 50); // 50 ms por paso
+  let n = 0;
+
+  return new Promise((resolve) => {
+    const id = setInterval(() => {
+      n += 1;
+      audioEl.volume = startVol + (delta * n) / steps;
+      if (n >= steps) {
+        clearInterval(id);
+        audioEl.volume = targetVol;
+        resolve();
+      }
+    }, 50);
+  });
+}
+
+function playWithFadeIn(audioEl, loop = true, ms = 1000) {
+  if (!audioEl) return;
+  audioEl.loop = loop;
+  audioEl.volume = 0;
+  audioEl.currentTime = 0;
+  audioEl.play().catch(() => {});
+  fadeAudio(audioEl, 0.9, ms); // súbelo a 90 %
+}
 
 console.log("GameStore instance:", gameStore);
 
@@ -78,43 +159,46 @@ watch(
   { immediate: true }
 );
 
-const imagePathsToPreload = [
-  // Dados Normales
-  `${import.meta.env.BASE_URL}assets/images/dice/die_d6.png`,
-  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_1.png`,
-  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_2.png`,
-  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_3.png`,
-  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_4.png`,
-  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_5.png`,
-  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_6.png`,
+watch(
+  () => gameStore.gamePhase,
+  async (phase, prev) => {
+    const inFight = ["boss_encounter", "minion_encounter"].includes(phase);
+    const wasInFight = ["boss_encounter", "minion_encounter"].includes(prev);
+    const FADE_MS = 1000; // ⇦ duración del fundido
 
-  // Dados Especiales
-  `${import.meta.env.BASE_URL}assets/images/dice/die_d20.png`,
+    /* ---------- Entramos en combate ---------- */
+    if (inFight && !wasInFight) {
+      // baja música normal y, cuando acabe, páusala
+      if (audioPlayer.value && !audioPlayer.value.paused) {
+        await fadeAudio(audioPlayer.value, 0, FADE_MS);
+        audioPlayer.value.pause();
+      }
 
-  // Dados Reversa
-  `${import.meta.env.BASE_URL}assets/images/dice/die_d6_reverse.png`,
-  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_reverse_1.png`,
-  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_reverse_2.png`,
-  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_reverse_3.png`,
-  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_reverse_4.png`,
-  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_reverse_5.png`,
-  `${import.meta.env.BASE_URL}assets/images/dice/die_fixed_reverse_6.png`,
+      // elige tema de combate y súbelo con fade-in
+      if (fightPlayer.value && fightTrackPaths.length) {
+        const idx = Math.floor(Math.random() * fightTrackPaths.length);
+        fightPlayer.value.src = fightTrackPaths[idx];
+        playWithFadeIn(fightPlayer.value, true, FADE_MS);
+      }
+    }
 
-  // Jefes
-  `${import.meta.env.BASE_URL}assets/images/bosses/dark_godcat.webp`,
-  `${import.meta.env.BASE_URL}assets/images/bosses/dragon_treasurer.png`,
-  `${import.meta.env.BASE_URL}assets/images/bosses/greedy_goblin_king.webp`,
-  `${import.meta.env.BASE_URL}assets/images/bosses/orc_general.png`,
-  `${import.meta.env.BASE_URL}assets/images/bosses/tax_collector.png`,
-];
-
-// Preload sound effects
-const diceSfxPaths = [
-  `${import.meta.env.BASE_URL}assets/sfx/dice-roll-1.mp3`,
-  `${import.meta.env.BASE_URL}assets/sfx/dice-roll-2.mp3`,
-  `${import.meta.env.BASE_URL}assets/sfx/dice-roll-3.mp3`,
-  `${import.meta.env.BASE_URL}assets/sfx/dice-roll-4.mp3`,
-];
+    /* ---------- Salimos del combate ---------- */
+    if (!inFight && wasInFight) {
+      if (fightPlayer.value && !fightPlayer.value.paused) {
+        await fadeAudio(fightPlayer.value, 0, FADE_MS);
+        fightPlayer.value.pause();
+        fightPlayer.value.src = "";
+      }
+      // vuelve la música normal
+      if (audioPlayer.value && currentMusicTrack.value) {
+        audioPlayer.value.currentTime = 0;
+        audioPlayer.value.play().catch(() => {});
+        fadeAudio(audioPlayer.value, 0.9, FADE_MS);
+      }
+    }
+  },
+  { immediate: true }
+);
 
 function preloadImages(imagePaths) {
   imagePaths.forEach((path) => {
@@ -188,10 +272,12 @@ onMounted(async () => {
 
   diceSfxList.value = diceSfxPaths.map((p) => {
     const a = new Audio(p);
-    a.volume = 0.8;          // ajusta volumen global del sfx
-    a.load();                // precarga
+    a.volume = 0.8; // ajusta volumen global del sfx
+    a.load(); // precarga
     return a;
   });
+  if (audioPlayer.value) audioPlayer.value.volume = 0.9;
+  if (fightPlayer.value) fightPlayer.value.volume = 0; // empieza silenciado
 });
 
 onUnmounted(() => {
@@ -250,6 +336,7 @@ function openSkinChanger() {
 <template>
   <div class="game-view-container">
     <audio ref="audioPlayer" style="display: none"></audio>
+    <audio ref="fightPlayer" style="display: none"></audio>
     <template v-if="gameStore.boardIsReady">
       <div class="main-game-area">
         <div class="left-panel-area">
@@ -299,7 +386,7 @@ function openSkinChanger() {
         <div class="right-action-panel">
           <ReservedDiceDisplay class="dice-reserve-component" />
         </div>
-              <div v-if="showGlobalDim" class="global-dim-overlay"></div>
+        <div v-if="showGlobalDim" class="global-dim-overlay"></div>
       </div>
 
       <CharacterSelectorModal
@@ -323,11 +410,7 @@ function openSkinChanger() {
         @cancel="showSkinChangerModal = false"
       />
       <transition name="choice-pop">
-        <ChoiceModal
-          v-if="choiceDetails"
-          :details="choiceDetails"
-          @player-choice="handleChoice"
-        />
+        <ChoiceModal v-if="choiceDetails" :details="choiceDetails" @player-choice="handleChoice" />
       </transition>
       <SummaryModal v-if="gameStore.showSummaryModal" />
     </template>
@@ -595,7 +678,7 @@ function openSkinChanger() {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.85);
-  z-index: 30;          /* ⬅️ por debajo de minion (40) y boss (50)   */
+  z-index: 30; /* ⬅️ por debajo de minion (40) y boss (50)   */
   pointer-events: none; /* no intercepta clics */
 }
 
@@ -616,5 +699,4 @@ function openSkinChanger() {
   opacity: 1;
   transform: scale(1);
 }
-
 </style>

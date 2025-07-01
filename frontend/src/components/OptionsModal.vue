@@ -15,7 +15,6 @@
               : "Normal"
           }}
         </button>
-
       </div>
 
       <div v-if="context === 'in-game'" class="options-group">
@@ -44,7 +43,7 @@ import { useGameStore } from "@/stores/game";
 
 /* Props & emits */
 defineProps({ context: { type: String, default: "in-game" } });
-const emit = defineEmits(["close","new-run","main-menu","show-stats","change-skin"]);
+const emit = defineEmits(["close", "new-run", "main-menu", "show-stats", "change-skin"]);
 
 /* Store */
 const gameStore = useGameStore();
@@ -52,15 +51,12 @@ const gameStore = useGameStore();
 /* ÚNICA función para alternar velocidad */
 function toggleSpeed() {
   const next =
-    gameStore.animationSpeedMultiplier === 1 ? 2 :
-    gameStore.animationSpeedMultiplier === 2 ? 0 : 1;
+    gameStore.animationSpeedMultiplier === 1 ? 2 : gameStore.animationSpeedMultiplier === 2 ? 0 : 1;
 
   // Llama a la acción Pinia que ya dispara el endpoint correcto
   gameStore.setAnimationSpeed(next);
 }
 </script>
-
-
 
 <style scoped>
 .options-modal-overlay {
