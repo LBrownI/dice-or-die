@@ -1,58 +1,90 @@
 <script setup>
+import { computed } from "vue";
 import { useGameStore } from "@/stores/game";
+import { useRouter } from "vue-router";
 
 const gameStore = useGameStore();
+const router = useRouter();
 
-const money = gameStore.playerMoney;
-const rolls = gameStore.totalRolls;
-const dice = gameStore.diceObtained;
-const bosses = gameStore.bossesDefeated;
-const perfectBosses = gameStore.perfectBossDefeats;
-const bribedBosses = gameStore.bribesBosses;
-const totalBosses = 5; // Hardcoded for now, could be moved to a constant
+const isVictory = computed(() => gameStore.gamePhase === "game_won");
 
-function getEnding() {
-  if (bribedBosses === totalBosses) {
+const stats = {
+  money: gameStore.playerMoney,
+  rolls: gameStore.totalRolls,
+  dice: gameStore.diceObtained,
+  bosses: gameStore.bossesDefeated,
+  perfectBosses: gameStore.perfectBossDefeats,
+  bribedBosses: gameStore.bribesBosses,
+};
+
+const endingMessage = computed(() => {
+  if (!isVictory.value) {
+    return "The dungeon consumes you... Better luck next time.";
+  }
+  // This logic is from the old implementation for victory scenarios
+  const totalBosses = 5;
+  if (stats.bribedBosses === totalBosses) {
     return "💰 You let money corrupt you... The power of bribery consumed you!";
-  } else if (bribedBosses > bosses) {
+  } else if (stats.bribesBosses > stats.bosses) {
     return "🤝 You preferred to negotiate rather than fight... Was that the right choice?";
-  } else if (bosses > bribedBosses) {
-    if (perfectBosses > 0) {
+  } else if (stats.bosses > stats.bribedBosses) {
+    if (stats.perfectBosses > 0) {
       return "⚔️ A skilled warrior who does not fear facing their enemies.";
     } else {
       return "🗡️ You defeated your enemies with bravery, though not always with precision.";
     }
-  } else if (bosses === totalBosses) {
-    if (perfectBosses === totalBosses) {
+  } else if (stats.bosses === totalBosses) {
+    if (stats.perfectBosses === totalBosses) {
       return "👑 LEGEND! You defeated all bosses with perfect precision. Incredible!";
     } else {
       return "🏆 A true champion! You defeated all bosses without resorting to bribes.";
     }
   }
-  return "🎮 The journey has ended... But was this the best path?";
+  return "The journey has ended... But was this the best path?";
+});
+
+async function handleRestart() {
+  try {
+    // Uses the existing character/skin in the store to start a new game
+    const newGame = await gameStore.createGame();
+    if (newGame && newGame._id) {
+      // Use router to navigate to the new game session URL
+      await router.push({ name: "Game", params: { sessionId: newGame._id } });
+      // Force a reload to ensure a clean state for the new game
+      // window.location.reload();
+    }
+  } catch (error) {
+    console.error("Failed to restart the game:", error);
+  }
 }
 
-function restartGame() {
-  // This will be implemented when we add the reset endpoint
-  console.log("Restart game requested");
-  window.location.href = "/";
+function handleMainMenu() {
+  router.push({ name: "Home" });
 }
 </script>
 
 <template>
   <div class="modal-backdrop">
-    <div class="modal-content">
-      <h2>🏁 Game Summary</h2>
+    <div class="modal-content" :class="{ victory: isVictory, defeat: !isVictory }">
+      <h2 v-if="isVictory" class="title-victory">YOU WIN!</h2>
+      <h2 v-else class="title-defeat">GAME OVER</h2>
+
       <ul class="summary-list">
-        <li>💰 Money collected: ${{ money }}</li>
-        <li>🎲 Dice rolled: {{ rolls }}</li>
-        <li>🎁 Dice obtained: {{ dice }}</li>
-        <li>⚔️ Bosses defeated: {{ bosses }}</li>
-        <li>✨ Perfect defeats: {{ perfectBosses }}</li>
-        <li>💸 Bosses bribed: {{ bribedBosses }}</li>
+        <li>💰 Money collected: ${{ stats.money }}</li>
+        <li>🎲 Dice rolled: {{ stats.rolls }}</li>
+        <li>🎁 Dice obtained: {{ stats.dice }}</li>
+        <li>⚔️ Bosses defeated: {{ stats.bosses }}</li>
+        <li>✨ Perfect defeats: {{ stats.perfectBosses }}</li>
+        <li>💸 Bosses bribed: {{ stats.bribedBosses }}</li>
       </ul>
-      <p class="ending-message">{{ getEnding() }}</p>
-      <button @click="restartGame">Restart Game</button>
+
+      <p class="ending-message">{{ endingMessage }}</p>
+
+      <div class="button-group">
+        <button v-if="isVictory" class="btn primary" @click="handleRestart">New Run</button>
+        <button v-else class="btn primary" @click="handleRestart">Try Again</button>
+        <button class="btn secondary" @click="handleMainMenu">Main Menu</button>
+      </div>
     </div>
   </div>
 </template>
@@ -60,11 +92,8 @@ function restartGame() {
 <style scoped>
 .modal-backdrop {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.8);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -72,47 +101,97 @@ function restartGame() {
 }
 
 .modal-content {
-  background: white;
+  background: #2c3e50;
+  color: #ecf0f1;
   border-radius: 12px;
-  padding: 25px;
+  padding: 25px 30px;
   text-align: center;
-  width: 300px;
-  box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+  width: 90%;
+  max-width: 380px;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+  border: 3px solid;
+}
+
+.modal-content.victory {
+  border-color: #f1c40f;
+  box-shadow: 0 0 30px #f1c40f;
+}
+.modal-content.defeat {
+  border-color: #c0392b;
+  box-shadow: 0 0 30px #c0392b;
+}
+
+.title-victory,
+.title-defeat {
+  margin: 0 0 15px;
+  font-family: "Press Start 2P", monospace;
+  font-size: 2rem;
+  text-shadow: 3px 3px 0px #000;
+}
+.title-victory {
+  color: #f1c40f;
+}
+.title-defeat {
+  color: #e74c3c;
 }
 
 .summary-list {
-  list-style-type: none; /* Removes the bullet points */
-  padding-left: 0; /* Removes default left padding for lists */
-  margin-top: 15px; /* Optional: add some space above the list */
-  margin-bottom: 15px; /* Optional: add some space below the list */
+  list-style-type: none;
+  padding-left: 0;
+  margin: 20px 0;
 }
 
 .summary-list li {
-  margin-bottom: 8px; /* Optional: adds space between list items */
-  text-align: center; /* Optional: if you want items aligned to the left within the centered modal content */
-  /* Remove or adjust if you prefer them centered like the rest of .modal-content */
+  margin-bottom: 10px;
+  text-align: left;
+  font-size: 1rem;
 }
 
 .ending-message {
   margin: 20px 0;
   font-style: italic;
-  color: #2c3e50;
-  font-weight: bold;
+  color: #bdc3c7;
   padding: 10px;
   border-radius: 8px;
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(0, 0, 0, 0.2);
 }
 
-button {
-  background-color: #28a745;
-  color: white;
-  padding: 10px 18px;
-  margin-top: 20px;
+.button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 25px;
+}
+
+.btn {
+  padding: 12px;
   border: none;
   border-radius: 8px;
   cursor: pointer;
+  font-weight: bold;
+  font-size: 1rem;
+  transition: all 0.2s;
 }
-button:hover {
-  background-color: #218838;
+
+.btn.primary {
+  background-color: #27ae60;
+  color: white;
+  border-bottom: 4px solid #229954;
+}
+.btn.primary:hover {
+  background-color: #2ecc71;
+  transform: translateY(-2px);
+  border-bottom-width: 6px;
+}
+
+.btn.secondary {
+  background-color: #7f8c8d;
+  color: white;
+  border-bottom: 4px solid #616a6b;
+}
+.btn.secondary:hover {
+  background-color: #95a5a6;
+  transform: translateY(-2px);
+  border-bottom-width: 6px;
 }
 </style>

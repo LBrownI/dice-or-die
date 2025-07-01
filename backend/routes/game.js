@@ -1,13 +1,14 @@
 const express = require("express");
 const router = express.Router();
 const GameSession = require("../models/GameSession");
+const User = require("../models/User");
 const {
   initializeNewGame,
   handlePlayerTurn,
   handlePlayerChoice,
   handlePlayerBribe,
   handleThiefSkill,
-  handleMageSkill,
+  handleWizardSkill,
   handleFleeMinion,
 } = require("../services/gameLogic");
 
@@ -45,35 +46,61 @@ router.get("/:id", async (req, res) => {
 // POST /api/game/:id/roll
 router.post("/:id/roll", async (req, res) => {
   try {
-    const { reservedDieIndex } = req.body;
+    const { reservedDieIndex, skillState } = req.body;
     if (reservedDieIndex === undefined || reservedDieIndex === null) {
       return res
         .status(400)
         .json({ message: "A die must be selected from the pouch." });
     }
 
-    /** 1. Cargamos la sesión como documento Mongoose */
+    /** 1. Cargamos la sesión y el usuario si existe */
     const doc = await GameSession.findById(req.params.id);
-    if (!doc || doc.isGameOver)
+    if (!doc || doc.isGameOver) {
       return res.status(404).json({ message: "Game not found or is over" });
+    }
+
+    let user = null;
+    if (doc.userId) {
+      user = await User.findById(doc.userId);
+    }
 
     /** 2. Lo convertimos en un objeto JS *sin* getters ni metadatos.
         Trabajaremos sobre él para no depender de Mongoose durante la lógica. */
     const state = doc.toObject({ depopulate: true, versionKey: false });
 
-    /** 3. Aplicamos la lógica del turno (esto muta `state`) */
-    const updatedState = handlePlayerTurn(state, reservedDieIndex);
+    // Overwrite the DB skill state with the one from the client
+    // to prevent race conditions where the toggle hasn't saved yet.
+    if (skillState) {
+      state.skillState = skillState;
+    }
 
-    /** 4. Persistimos el nuevo estado en Mongo copiándolo a `doc`
-        (esto mantiene la partida grabada, pero ya no afecta a la respuesta) */
+    /** 3. Aplicamos la lógica del turno (esto muta `state` y `user`) */
+    const result = handlePlayerTurn(
+      state,
+      reservedDieIndex,
+      user ? user.toObject() : null
+    );
+    const { updatedState, updatedUser } = result;
+
+    /** 4. Persistimos el nuevo estado en Mongo copiándolo a `doc` y `user` */
     Object.assign(doc, updatedState);
     doc.markModified("boardSquares");
     doc.markModified("choiceDetails");
-    doc.markModified("currentBoss"); // objeto anidado
+    doc.markModified("currentBoss");
+    doc.markModified("stats");
     await doc.save();
 
+    if (user && updatedUser) {
+      // Only save the user if the logic function actually returned an updated version
+      if (result.updatedUser) {
+        user.stats = updatedUser.stats;
+        user.achievements = updatedUser.achievements;
+        await user.save();
+      }
+    }
+
     /** 5. Enviamos al cliente *exactamente* lo que acaba de generar la lógica */
-    res.json(updatedState);
+    res.json({ updatedState, updatedUser });
   } catch (err) {
     console.error("Error during /roll:", err);
     res.status(500).json({ error: err.message });
@@ -109,18 +136,31 @@ router.post("/:id/bribe", async (req, res) => {
     let session = await GameSession.findById(req.params.id);
     if (!session) return res.status(404).json({ message: "Game not found" });
 
-    // We need to implement handlePlayerBribe in gameLogic.js
-    const { updatedState, error } = handlePlayerBribe(session.toObject());
+    let user = null;
+    if (session.userId) {
+      user = await User.findById(session.userId);
+    }
+
+    const { updatedState, updatedUser, error } = handlePlayerBribe(
+      session.toObject(),
+      user ? user.toObject() : null
+    );
 
     if (error) {
       return res.status(400).json({ message: error });
     }
 
     Object.assign(session, updatedState);
-    session.markModified("boardSquares"); // In case the stage changes
+    session.markModified("boardSquares");
     await session.save();
 
-    res.json(updatedState);
+    if (user && updatedUser) {
+      user.stats = updatedUser.stats;
+      user.achievements = updatedUser.achievements;
+      await user.save();
+    }
+
+    res.json({ updatedState, updatedUser });
   } catch (err) {
     console.error("Error during /bribe:", err);
     res.status(500).json({ error: err.message });
@@ -176,18 +216,45 @@ router.post("/:id/skill/toggle", async (req, res) => {
   }
 });
 
+router.post("/:id/skin", async (req, res) => {
+  try {
+    const doc = await GameSession.findById(req.params.id);
+    if (!doc) return res.status(404).json({ message: "Game not found" });
+
+    const { playerSkin } = req.body;
+    if (!playerSkin) {
+      return res.status(400).json({ message: "No skin provided." });
+    }
+    doc.playerSkin = playerSkin;
+
+    await doc.save();
+    res.json(doc.toObject());
+  } catch (err) {
+    console.error("Error during skin update:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.post("/:id/skill/use", async (req, res) => {
   try {
     let session = await GameSession.findById(req.params.id);
     if (!session) return res.status(404).json({ message: "Game not found" });
 
-    const { dieIndex } = req.body; // For Mage
+    const { dieIndex, skillState } = req.body;
     let result;
 
-    if (session.playerCharacter === "thief") {
-      result = handleThiefSkill(session.toObject());
-    } else if (session.playerCharacter === "mage") {
-      result = handleMageSkill(session.toObject(), dieIndex);
+    // Convert to plain object to pass to logic functions
+    const state = session.toObject();
+
+    // Overwrite with client state to prevent race condition
+    if (skillState) {
+      state.skillState = skillState;
+    }
+
+    if (state.playerCharacter === "thief") {
+      result = handleThiefSkill(state);
+    } else if (state.playerCharacter === "wizard") {
+      result = handleWizardSkill(state, dieIndex);
     } else {
       return res
         .status(400)
@@ -198,12 +265,26 @@ router.post("/:id/skill/use", async (req, res) => {
       return res.status(400).json({ message: result.error });
     }
 
-    Object.assign(session, result.updatedState);
+    const { updatedState, updatedUser } = result;
+
+    // Apply changes back to the document and save
+    Object.assign(session, updatedState);
     session.markModified("reservedDice");
     session.markModified("skillState");
     await session.save();
 
-    res.json(result.updatedState);
+    let user = null;
+    if (session.userId) {
+      user = await User.findById(session.userId);
+    }
+
+    if (user && updatedUser) {
+      user.stats = updatedUser.stats;
+      user.achievements = updatedUser.achievements;
+      await user.save();
+    }
+
+    res.json({ updatedState, updatedUser });
   } catch (err) {
     console.error("Error during skill use:", err);
     res.status(500).json({ error: err.message });

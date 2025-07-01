@@ -3,10 +3,12 @@
     <main class="main-content">
       <router-view />
     </main>
+    <AchievementNotifier />
   </div>
 </template>
 
 <script setup>
+import AchievementNotifier from "@/components/AchievementNotifier.vue";
 // No menu logic needed
 </script>
 

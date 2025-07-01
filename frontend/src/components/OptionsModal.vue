@@ -11,13 +11,13 @@
       </div>
 
       <div v-if="context === 'in-game'" class="options-group">
-        <label>Appearance</label>
-        <button class="option-button" @click="emit('change-skin')">Change Skin</button>
+        <label>Statistics</label>
+        <button class="option-button" @click="emit('show-stats')" disabled>View Statistics</button>
       </div>
 
       <div v-if="context === 'in-game'" class="options-group">
-        <label>Statistics</label>
-        <button class="option-button" @click="emit('show-stats')" disabled>View Statistics</button>
+        <label>Appearance</label>
+        <button class="option-button" @click="emit('change-skin')">Change Skin</button>
       </div>
 
       <div class="actions-group">
@@ -25,7 +25,7 @@
           <button class="action-button primary" @click="emit('new-run')">New Run</button>
           <button class="action-button" @click="emit('main-menu')">Main Menu</button>
         </template>
-        <button class="action-button secondary" @click="emit('close')">Close</button>
+        <button class="action-button secondary" @click="emit('close')">Back</button>
       </div>
     </div>
   </div>

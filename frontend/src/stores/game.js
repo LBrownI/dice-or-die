@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import apiClient from "../services/api";
+import { useAuthStore } from "./auth";
 
 export const useGameStore = defineStore("game", () => {
   // --- STATE ---
@@ -78,10 +79,12 @@ export const useGameStore = defineStore("game", () => {
       boardIsReady.value = false;
       console.log("Pinia: Requesting new game from server…");
 
+      const authStore = useAuthStore();
       const body = {
         playerCharacter: playerCharacter.value,
         playerSkin: playerSkin.value,
         animationSpeedMultiplier: animationSpeedMultiplier.value,
+        userId: authStore.currentUser?._id,
       };
 
       const response = await apiClient.post("/api/game/start", body);
@@ -172,19 +175,24 @@ export const useGameStore = defineStore("game", () => {
     try {
       const response = await apiClient.post(`/api/game/${_id.value}/roll`, {
         reservedDieIndex,
+        skillState: skillState.value,
       });
 
-      // --- THIS IS THE FIX for the dice animation ---
-      // Show the dice animation before patching the state
-      lastGeneralRoll.value = response.data.lastDiceRoll?.value;
+      const { updatedState, updatedUser } = response.data;
+
+      // --- LIVE USER UPDATE ---
+      if (updatedUser) {
+        useAuthStore()._setCurrentUser(updatedUser);
+      }
+
+      // --- ANIMATION & STATE PATCH ---
+      lastGeneralRoll.value = updatedState.lastDiceRoll?.value;
       showGeneralRoll.value = true;
       setTimeout(() => {
         showGeneralRoll.value = false;
       }, 1000); // Hide after 1s
-      // Wait for the animation to feel right before updating the board
       await new Promise((res) => setTimeout(res, getAnimationDelay(500)));
-      // Patch the state
-      this.$patch(response.data);
+      this.$patch(updatedState);
     } catch (error) {
       console.error("Pinia: Failed to roll dice", error);
     } finally {
@@ -206,8 +214,17 @@ export const useGameStore = defineStore("game", () => {
     // Universal skill usage action
     if (!_id.value || skillState.value.isUsedInEncounter) return;
     try {
-      const response = await apiClient.post(`/api/game/${_id.value}/skill/use`, payload);
-      this.$patch(response.data);
+      const response = await apiClient.post(`/api/game/${_id.value}/skill/use`, {
+        ...payload,
+        skillState: skillState.value,
+      });
+      const { updatedState, updatedUser } = response.data;
+
+      if (updatedUser) {
+        useAuthStore()._setCurrentUser(updatedUser);
+      }
+
+      this.$patch(updatedState);
     } catch (error) {
       console.error(`Pinia: Failed to use skill.`, error);
       if (error.response?.data?.message) {
@@ -232,8 +249,15 @@ export const useGameStore = defineStore("game", () => {
     if (!_id.value || gamePhase.value !== "boss_encounter") return;
     try {
       const response = await apiClient.post(`/api/game/${_id.value}/bribe`);
-      if (response.data) {
-        this.$patch(response.data);
+      const { updatedState, updatedUser } = response.data;
+
+      // --- LIVE USER UPDATE ---
+      if (updatedUser) {
+        useAuthStore()._setCurrentUser(updatedUser);
+      }
+
+      if (updatedState) {
+        this.$patch(updatedState);
       }
     } catch (error) {
       // The backend will send a 400 if not enough money, handle it gracefully
@@ -282,6 +306,17 @@ export const useGameStore = defineStore("game", () => {
       if (error.response?.data?.message) {
         alert(error.response.data.message);
       }
+    }
+  }
+
+  async function updatePlayerSkin(newSkin) {
+    if (!_id.value) return;
+    try {
+      playerSkin.value = newSkin; // Optimistic update
+      await apiClient.post(`/api/game/${_id.value}/skin`, { playerSkin: newSkin });
+      gameMessage.value = "Player skin updated!";
+    } catch (error) {
+      console.error("Pinia: Failed to update player skin", error);
     }
   }
 
@@ -346,5 +381,6 @@ export const useGameStore = defineStore("game", () => {
     highlightSquareForDie,
     clearHighlightedSquare,
     fleeMinion,
+    updatePlayerSkin,
   };
 });

@@ -37,7 +37,7 @@ const icon = computed(() => {
       return "⚔️";
     case "thief":
       return "💰";
-    case "mage":
+    case "wizard":
       return "✨";
     default:
       return "?";
@@ -63,7 +63,7 @@ const description = computed(() => {
       return "Activate to double the damage of your next attack this encounter.";
     case "thief":
       return "Use during a boss or minion encounter to steal from them.";
-    case "mage":
+    case "wizard":
       return "Activate to duplicate the next die you click in your pouch.";
     default:
       return "No skill";
@@ -76,7 +76,7 @@ const buttonClasses = computed(() => ({
   "is-used": props.skillState.isUsedInEncounter,
   knight: props.character === "knight",
   thief: props.character === "thief",
-  mage: props.character === "mage",
+  wizard: props.character === "wizard",
 }));
 
 function handleClick() {
@@ -85,7 +85,7 @@ function handleClick() {
   if (props.character === "thief") {
     emit("use"); // Thief skill is a direct use, no toggle
   } else {
-    // Knight and Mage have toggleable skills
+    // Knight and Wizard have toggleable skills
     emit("toggle", !props.skillState.isActive);
   }
 }
@@ -141,7 +141,7 @@ function handleClick() {
   border-color: #f1c40f;
   color: #f1c40f;
 }
-.skill-button.mage.is-active {
+.skill-button.wizard.is-active {
   border-color: #3498db;
   color: #3498db;
 }

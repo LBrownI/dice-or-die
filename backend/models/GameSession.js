@@ -4,6 +4,12 @@ const { Schema } = mongoose;
 
 const gameSessionSchema = new Schema(
   {
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      index: true,
+      default: null,
+    },
     playerPosition: { type: Number, default: 0 },
     playerMoney: { type: Number, default: 0 },
     playerLap: { type: Number, default: 1 },
@@ -48,12 +54,11 @@ const gameSessionSchema = new Schema(
     },
 
     stats: {
-      type: Map,
-      of: Schema.Types.Mixed,
-      default: () => ({
+      type: Object,
+      default: {
         mostRolledNumber: {}, // { '3': 5, '6': 10 }
         mostUsedDie: {}, // { 'Random': 15, 'Fixed': 8 }
-      }),
+      },
     },
   },
   {

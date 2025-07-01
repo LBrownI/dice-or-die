@@ -52,7 +52,7 @@ const minionImageUrl = computed(() => {
 
 watch(currentBossHP, (newVal, oldVal) => {
   if (oldVal != null && newVal < oldVal) {
-    console.log("daño!");
+    console.log(`Boss took damage. HP: ${oldVal} -> ${newVal}`);
     justTookDamage.value = true;
     setTimeout(() => {
       justTookDamage.value = false;

@@ -2,22 +2,34 @@
 <script setup>
 import { useRouter } from "vue-router";
 import { useGameStore } from "../stores/game";
-import { ref, onMounted, onUnmounted } from "vue";
+import { useAuthStore } from "../stores/auth";
+import { ref, onMounted, onUnmounted, computed } from "vue";
 import D20Die3D from "../components/D20Die3D.vue";
 import CharacterSelectorModal from "../components/CharacterSelectorModal.vue";
 import OptionsModal from "../components/OptionsModal.vue";
+import ProfileModal from "../components/ProfileModal.vue";
+import CollectionModal from "../components/CollectionModal.vue";
 
 const router = useRouter();
 const gameStore = useGameStore();
+const authStore = useAuthStore();
 const mainMenuAudio = ref(null);
 const showCharacterSelector = ref(false);
 const showOptionsMenu = ref(false);
+const showProfileModal = ref(false);
+const showCollectionModal = ref(false);
 
 const characters = [
   { id: "knight", name: "Knight", skins: ["blue", "green", "red", "black"] },
   { id: "thief", name: "Thief", skins: ["blue", "green", "purple", "red"] },
   { id: "wizard", name: "Wizard", skins: ["blue", "green", "purple", "red"] },
 ];
+
+const profileButtonText = computed(() => {
+  return authStore.isAuthenticated && authStore.currentUser
+    ? authStore.currentUser.username
+    : "[None]";
+});
 
 async function handleCharacterSelection() {
   // Hide the modal first
@@ -51,13 +63,26 @@ onUnmounted(() => {
     <div class="main-menu-container">
       <div class="main-menu-header">
         <D20Die3D class="d20-side" />
-        <span class="main-menu-title">DICE OR DIE</span>
+        <h1 class="main-menu-title"><span>DICE OR </span><span class="red-die">DIE</span></h1>
       </div>
-      <div class="main-menu-buttons-row">
-        <router-link to="/login" class="menu-btn profile-btn">Profile</router-link>
-        <button class="menu-btn play-btn" @click="showCharacterSelector = true">PLAY</button>
-        <button class="menu-btn options-btn" @click="showOptionsMenu = true">Options</button>
-        <button class="menu-btn collection-btn" disabled>Collection</button>
+      <div class="main-menu-buttons-grid">
+        <div class="main-buttons">
+          <button class="menu-btn play-btn" @click="showCharacterSelector = true">PLAY</button>
+        </div>
+        <div class="side-buttons">
+          <button class="menu-btn profile-btn" @click="showProfileModal = true">Profile</button>
+          <button class="menu-btn options-btn" @click="showOptionsMenu = true">Options</button>
+          <button
+            class="menu-btn collection-btn"
+            :disabled="!authStore.isAuthenticated"
+            @click="showCollectionModal = true"
+          >
+            Collection
+          </button>
+        </div>
+        <div class="profile-status-display" @click="showProfileModal = true">
+          {{ profileButtonText }}
+        </div>
       </div>
       <!-- Hidden audio for soundtrack, only wav -->
       <audio ref="mainMenuAudio" autoplay loop hidden>
@@ -76,8 +101,14 @@ onUnmounted(() => {
       @cancel="showCharacterSelector = false"
     />
 
+    <!-- Profile Modal -->
+    <ProfileModal v-if="showProfileModal" @close="showProfileModal = false" />
+
     <!-- Options Modal for Main Menu -->
     <OptionsModal v-if="showOptionsMenu" context="main-menu" @close="showOptionsMenu = false" />
+
+    <!-- Collection Modal -->
+    <CollectionModal v-if="showCollectionModal" @close="showCollectionModal = false" />
   </div>
 </template>
 
@@ -101,7 +132,7 @@ onUnmounted(() => {
   border-radius: 18px;
   box-shadow: 0 0 40px #000a, 0 0 0 4px #fff2 inset;
   padding: 48px 36px 36px 36px;
-  min-width: 420px;
+  min-width: 500px;
   max-width: 95vw;
 }
 .main-menu-header {
@@ -126,24 +157,50 @@ onUnmounted(() => {
   filter: contrast(1.2) brightness(1.1);
   display: block;
   text-align: center;
+  margin: 0;
 }
-.main-menu-buttons-row {
-  display: flex;
-  flex-direction: row;
-  gap: 24px;
-  align-items: center;
-  justify-content: center;
+.main-menu-title .red-die {
+  color: #e74c3c;
+  text-shadow: 0 0 8px #000, 0 2px 0 #b02a2a, 0 0 24px #e74c3c;
+}
+.main-menu-buttons-grid {
+  display: grid;
+  grid-template-areas:
+    "main side"
+    "status status";
+  grid-template-columns: 2fr 1fr;
+  gap: 12px;
   width: 100%;
-  margin-top: 18px;
-  margin-bottom: 10px;
+  align-items: center;
+}
+.main-buttons {
+  grid-area: main;
+  display: flex;
+  justify-content: center;
+}
+.side-buttons {
+  grid-area: side;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.profile-status-display {
+  grid-area: status;
+  text-align: center;
+  color: #fff;
+  background: #0003;
+  padding: 8px;
+  border-radius: 6px;
+  margin-top: 10px;
+  cursor: pointer;
 }
 .menu-btn {
   font-family: "Press Start 2P", "VT323", "Segoe UI", monospace;
-  font-size: 1.1rem;
-  padding: 12px 0;
-  width: 170px;
+  font-size: 0.9rem;
+  padding: 10px 0;
+  width: 100%;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #222a;
   color: #fff;
   box-shadow: 0 2px 8px #0008;
@@ -157,31 +214,21 @@ onUnmounted(() => {
   cursor: not-allowed;
 }
 .play-btn {
-  font-size: 1.6rem;
+  font-size: 2rem;
+  padding: 20px 0;
   font-weight: bold;
   background: linear-gradient(90deg, #f7b42c 0%, #fc575e 100%);
   color: #fff;
   box-shadow: 0 4px 24px #fc575e88, 0 0 0 4px #fff4 inset;
   text-shadow: 0 2px 0 #b02a2a, 0 0 16px #fff8;
   letter-spacing: 0.08em;
-  transform: scale(1.08);
+  transform: scale(1.02);
 }
 .play-btn:hover {
   background: linear-gradient(90deg, #fc575e 0%, #f7b42c 100%);
-  transform: scale(1.12);
+  transform: scale(1.05);
 }
-.profile-btn {
-  background: #2e2e4d;
-  color: #fff;
-  border: 2px solid #fff2;
-}
-.options-btn,
-.collection-btn {
-  background: #444a;
-  color: #fff;
-  border: 2px solid #fff2;
-}
-.menu-btn:not(:disabled):hover {
+.menu-btn:not(.play-btn):not(:disabled):hover {
   background: #fff2;
   color: #fc575e;
   transform: scale(1.03);

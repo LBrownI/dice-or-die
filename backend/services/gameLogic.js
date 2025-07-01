@@ -334,12 +334,6 @@ function startBossEncounter(gameState) {
   const config = STAGE_CONFIGS[gameState.playerStage];
   const bossInfo = config.bossDefeatCondition;
 
-  // --- Skill Reset on new encounter ---
-  gameState.skillState = {
-    isActive: false,
-    isUsedInEncounter: false,
-  };
-
   gameState.gamePhase = "boss_encounter";
   gameState.currentBoss = {
     name: config.bossName,
@@ -357,6 +351,8 @@ function startBossEncounter(gameState) {
 // --- Main Initialization Function ---
 function initializeNewGame(options = {}) {
   let newGame = {
+    // Game Session State
+    userId: options.userId || null,
     // Player State
     playerPosition: 0,
     playerMoney: 0,
@@ -368,6 +364,7 @@ function initializeNewGame(options = {}) {
     isGameOver: false,
     gamePhase: "rolling",
     choiceDetails: null,
+    showSummaryModal: false,
     playerCharacter: options.playerCharacter || "knight",
     playerSkin: options.playerSkin || "blue",
 
@@ -447,7 +444,7 @@ function getRandomPickDieOptions() {
   return opts;
 }
 
-function handlePlayerTurn(gameState, reservedDieIndex) {
+function handlePlayerTurn(gameState, reservedDieIndex, user) {
   if (
     !gameState.reservedDice ||
     reservedDieIndex === undefined ||
@@ -485,11 +482,23 @@ function handlePlayerTurn(gameState, reservedDieIndex) {
       steps = getRandomInt(1, 6);
   }
 
+  // --- Update Session Stats for EVERY roll ---
+  gameState.totalRolls += 1;
+  gameState.lastDiceRoll = { value: steps, type: dieToRoll.type };
+
+  if (!gameState.stats) {
+    gameState.stats = { mostRolledNumber: {}, mostUsedDie: {} };
+  }
+  const dieTypeStr = dieToRoll.type;
+  gameState.stats.mostUsedDie[dieTypeStr] =
+    (gameState.stats.mostUsedDie[dieTypeStr] || 0) + 1;
+
   // --- BOSS ENCOUNTER LOGIC ---
   if (gameState.gamePhase === "boss_encounter") {
     let damage = Math.abs(steps);
 
     // --- KNIGHT SKILL ---
+    let skillMessage = "";
     if (
       gameState.playerCharacter === "knight" &&
       gameState.skillState.isActive
@@ -497,9 +506,7 @@ function handlePlayerTurn(gameState, reservedDieIndex) {
       damage *= 2;
       gameState.skillState.isActive = false;
       gameState.skillState.isUsedInEncounter = true;
-      gameState.gameMessage = "Knight's skill: Double damage! ";
-    } else {
-      gameState.gameMessage = "";
+      skillMessage = "Knight's skill: Double damage! ";
     }
 
     gameState.lastDiceRoll = { value: damage, type: dieToRoll.type };
@@ -516,11 +523,8 @@ function handlePlayerTurn(gameState, reservedDieIndex) {
       gameState.stats.mostRolledNumber = {};
     if (!gameState.stats.mostUsedDie) gameState.stats.mostUsedDie = {};
     const rollValueStr = String(damage);
-    const dieTypeStr = dieToRoll.type;
     gameState.stats.mostRolledNumber[rollValueStr] =
       (gameState.stats.mostRolledNumber[rollValueStr] || 0) + 1;
-    gameState.stats.mostUsedDie[dieTypeStr] =
-      (gameState.stats.mostUsedDie[dieTypeStr] || 0) + 1;
 
     // Check for boss defeat
     if (
@@ -533,10 +537,27 @@ function handlePlayerTurn(gameState, reservedDieIndex) {
       gameState.bossesDefeated = (gameState.bossesDefeated || 0) + 1;
       gameState.gameMessage = `You have defeated the boss!`;
 
-      // --- MAGE SKILL RECHARGE ---
-      if (gameState.playerCharacter === "mage") {
-        gameState.skillState.isUsedInEncounter = false;
-        gameState.gameMessage += " (Mage skill recharges!)";
+      // --- LIVE USER STAT UPDATE ---
+      if (user) {
+        user.stats.totalBossesDefeated =
+          (user.stats.totalBossesDefeated || 0) + 1;
+        if (gameState.currentBossHP === 0) {
+          user.stats.totalPerfectDefeats =
+            (user.stats.totalPerfectDefeats || 0) + 1;
+        }
+        user = checkAndUnlockAchievements(user, gameState);
+      }
+
+      // --- SKILL RECHARGE ---
+      // Reset skill for all characters after a boss is defeated
+      gameState.skillState.isUsedInEncounter = false;
+      gameState.gameMessage += " (Skill recharges!)";
+
+      // --- REWARD: Add a die for defeating the boss ---
+      if (gameState.reservedDice.length < gameState.maxDiceInBag) {
+        gameState.reservedDice.push({ type: "Random" });
+        gameState.diceObtained = (gameState.diceObtained || 0) + 1;
+        gameState.gameMessage += ` You get a new die for your victory!`;
       }
 
       // Reset boss state
@@ -550,6 +571,9 @@ function handlePlayerTurn(gameState, reservedDieIndex) {
         gameState.isGameOver = true;
         gameState.showSummaryModal = true;
         gameState.gamePhase = "game_won";
+        if (user) {
+          user = updateUserStatsOnGameEnd(user, gameState);
+        }
       } else {
         // Setup next stage
         gameState = setupStage(gameState);
@@ -557,7 +581,7 @@ function handlePlayerTurn(gameState, reservedDieIndex) {
       console.log(
         `[BOSS ENCOUNTER] Boss defeated. Advancing to stage ${gameState.playerStage}.`
       );
-      return gameState;
+      return { updatedState: gameState, updatedUser: user };
     }
     // Check for failure (no dice left)
     if (gameState.reservedDice.length === 0 && gameState.currentBossHP > 0) {
@@ -565,18 +589,23 @@ function handlePlayerTurn(gameState, reservedDieIndex) {
       gameState.isGameOver = true;
       gameState.showSummaryModal = true;
       gameState.gamePhase = "game_lost";
+      if (user) {
+        user = updateUserStatsOnGameEnd(user, gameState);
+      }
       // Reset boss state
       gameState.currentBoss = null;
       gameState.currentBossHP = null;
       gameState.currentBossMaxHP = null;
       gameState.currentDiceThrows = [];
       console.log(`[BOSS ENCOUNTER] Boss failed. Game over.`);
-      return gameState;
+      return { updatedState: gameState, updatedUser: user };
     }
 
     // Continue boss fight
-    gameState.gameMessage += `Boss attack! Damage: ${damage}. HP left: ${gameState.currentBossHP}.`;
-    return gameState;
+    gameState.gameMessage =
+      skillMessage +
+      `Boss attack! Damage: ${damage}. HP left: ${gameState.currentBossHP}.`;
+    return { updatedState: gameState, updatedUser: user };
   }
 
   // --- MINION ENCOUNTER LOGIC ---
@@ -591,13 +620,14 @@ function handlePlayerTurn(gameState, reservedDieIndex) {
     ) {
       // Should not happen, but as a fallback, just end the phase
       gameState.gamePhase = "rolling";
-      return gameState;
+      return { updatedState: gameState, updatedUser: user };
     }
 
     let damage = Math.abs(steps);
     const penalty = minionSquare.effectDetails.penalty;
 
     // Apply Knight skill
+    let minionSkillMessage = "";
     if (
       gameState.playerCharacter === "knight" &&
       gameState.skillState.isActive
@@ -605,6 +635,7 @@ function handlePlayerTurn(gameState, reservedDieIndex) {
       damage *= 2;
       gameState.skillState.isActive = false;
       gameState.skillState.isUsedInEncounter = true;
+      minionSkillMessage = "Knight's skill: Double damage! ";
     }
 
     // Apply damage to minion's HP
@@ -612,11 +643,11 @@ function handlePlayerTurn(gameState, reservedDieIndex) {
 
     if (minionSquare.effectDetails.hp <= 0) {
       // Minion is defeated
-      gameState.gameMessage = `Minion defeated! (Damage: ${damage})`;
-      if (gameState.playerCharacter === "mage") {
-        gameState.skillState.isUsedInEncounter = false;
-        gameState.gameMessage += " (Mage skill recharges!)";
-      }
+      gameState.gameMessage =
+        minionSkillMessage + `Minion defeated! (Damage: ${damage})`;
+      // Reset skill for all characters after a minion is defeated
+      gameState.skillState.isUsedInEncounter = false;
+      gameState.gameMessage += " (Skill recharges!)";
 
       // Clean up the square and game state
       minionSquare.isTempBad = false;
@@ -632,23 +663,28 @@ function handlePlayerTurn(gameState, reservedDieIndex) {
       // Minion survived, penalize player and continue encounter
       const hitPenalty = Math.floor(penalty / 2); // Less punishing than fleeing
       gameState.playerMoney -= hitPenalty;
-      gameState.gameMessage = `You hit the minion for ${damage}, but it survives! It hits you back, you lose $${hitPenalty}. (HP left: ${minionSquare.effectDetails.hp})`;
+      gameState.gameMessage =
+        minionSkillMessage +
+        `You hit the minion for ${damage}, but it survives! It hits you back, you lose $${hitPenalty}. (HP left: ${minionSquare.effectDetails.hp})`;
       // The game phase remains "minion_encounter", forcing another player action
     }
-    return gameState;
+    return { updatedState: gameState, updatedUser: user };
   }
 
   // --- NORMAL BOARD LOGIC ---
   // A "turn" is a board move.
-  gameState.totalRolls += 1;
-  gameState.lastDiceRoll = { value: steps, type: dieToRoll.type };
+  // MOVED TO TOP: gameState.totalRolls += 1;
+  // MOVED TO TOP: gameState.lastDiceRoll = { value: steps, type: dieToRoll.type };
 
   // 2. Move the player (robust lap logic)
   const totalBoardSquares = calculateTotalBoardSquares(config);
   gameState.lastPlayerPositionBeforeThisMove = gameState.playerPosition;
 
   let newPosition;
-  if (steps >= 0) {
+  if (gameState.playerPosition === 0 && steps < 0) {
+    // If at start and rolling a reverse die, don't move. This wastes the die.
+    newPosition = 0;
+  } else if (steps >= 0) {
     let distToLapEnd = totalBoardSquares - gameState.playerPosition;
     if (steps >= distToLapEnd) {
       // Always stop at 0 and trigger lap logic
@@ -657,6 +693,7 @@ function handlePlayerTurn(gameState, reservedDieIndex) {
       newPosition = gameState.playerPosition + steps;
     }
   } else {
+    // steps < 0 and playerPosition > 0
     newPosition =
       (gameState.playerPosition + steps + totalBoardSquares) %
       totalBoardSquares;
@@ -769,7 +806,7 @@ function handlePlayerTurn(gameState, reservedDieIndex) {
     gameState.gameMessage = `Lap ${gameState.playerLap} of ${config.lapsToComplete} completed!`;
     // If this lap is the final one, trigger the boss encounter
     if (gameState.playerLap > config.lapsToComplete) {
-      return startBossEncounter(gameState); // Return the new state immediately
+      return { updatedState: startBossEncounter(gameState), updatedUser: user }; // Return the new state immediately
     } else {
       // Otherwise, just reset the board for the next lap
       setupLapEffects(gameState);
@@ -777,7 +814,7 @@ function handlePlayerTurn(gameState, reservedDieIndex) {
   }
 
   // 5. Return the fully updated game state
-  return gameState;
+  return { updatedState: gameState, updatedUser: user };
 }
 
 // --- ADD A FUNCTION FOR HANDLING CHOICES ---
@@ -823,7 +860,7 @@ function handlePlayerChoice(gameState, chosenOption) {
   return gameState;
 }
 
-function handlePlayerBribe(gameState) {
+function handlePlayerBribe(gameState, user) {
   if (gameState.gamePhase !== "boss_encounter" || !gameState.currentBoss) {
     return { error: "Not in a boss encounter." };
   }
@@ -839,6 +876,19 @@ function handlePlayerBribe(gameState) {
   gameState.bribesBosses = (gameState.bribesBosses || 0) + 1;
   gameState.gameMessage = `You bribed ${gameState.currentBoss.name} for $${bribeCost}!`;
 
+  // --- LIVE USER STAT UPDATE ---
+  if (user) {
+    user.stats.totalBribedBosses = (user.stats.totalBribedBosses || 0) + 1;
+    user = checkAndUnlockAchievements(user, gameState);
+  }
+
+  // --- REWARD: Add a die for bypassing the boss ---
+  if (gameState.reservedDice.length < gameState.maxDiceInBag) {
+    gameState.reservedDice.push({ type: "Random" });
+    gameState.diceObtained = (gameState.diceObtained || 0) + 1;
+    gameState.gameMessage += ` You get a new die to continue your journey.`;
+  }
+
   // Defeat the boss and advance to the next stage
   gameState.bossesDefeated = (gameState.bossesDefeated || 0) + 1; // Count as a defeat
   gameState.playerStage++;
@@ -847,6 +897,9 @@ function handlePlayerBribe(gameState) {
     gameState.isGameOver = true;
     gameState.showSummaryModal = true;
     gameState.gamePhase = "game_won";
+    if (user) {
+      user = updateUserStatsOnGameEnd(user, gameState);
+    }
   } else {
     gameState = setupStage(gameState); // Setup the next stage
   }
@@ -857,7 +910,7 @@ function handlePlayerBribe(gameState) {
   gameState.currentBossMaxHP = null;
   gameState.currentDiceThrows = [];
 
-  return { updatedState: gameState };
+  return { updatedState: gameState, updatedUser: user };
 }
 
 function handleThiefSkill(gameState) {
@@ -954,9 +1007,9 @@ function handleThiefSkill(gameState) {
   return { updatedState: gameState };
 }
 
-function handleMageSkill(gameState, dieIndex) {
+function handleWizardSkill(gameState, dieIndex) {
   if (
-    gameState.skillState.isUsedInEncounter ||
+    !gameState.skillState.isActive || // Use skill only when active
     gameState.reservedDice.length >= gameState.maxDiceInBag ||
     dieIndex === undefined ||
     !gameState.reservedDice[dieIndex]
@@ -967,7 +1020,7 @@ function handleMageSkill(gameState, dieIndex) {
   const dieToDuplicate = gameState.reservedDice[dieIndex];
   gameState.reservedDice.push({ ...dieToDuplicate }); // Add a copy
 
-  gameState.gameMessage = `Mage skill: Duplicated a ${dieToDuplicate.type} die!`;
+  gameState.gameMessage = `Wizard skill: Duplicated a ${dieToDuplicate.type} die!`;
   gameState.skillState.isActive = false; // Turn off toggle
   gameState.skillState.isUsedInEncounter = true; // Mark as used
 
@@ -1009,6 +1062,118 @@ function handleFleeMinion(gameState) {
   return { updatedState: gameState };
 }
 
+function updateUserStatsOnGameEnd(user, finalGameState) {
+  if (!user || !finalGameState) return user;
+
+  const sessionStats = finalGameState;
+
+  // Initialize if not present
+  user.stats = user.stats || {};
+  const diceStatsMap = new Map(Object.entries(user.stats.diceStats || {}));
+
+  // Simple stats
+  user.stats.totalDiceRolled =
+    (user.stats.totalDiceRolled || 0) + sessionStats.totalRolls;
+  user.stats.maxMoneyInRun = Math.max(
+    user.stats.maxMoneyInRun || 0,
+    sessionStats.playerMoney
+  );
+
+  // Conditional stats
+  if (finalGameState.gamePhase === "game_won") {
+    user.stats.totalWins = (user.stats.totalWins || 0) + 1;
+  }
+
+  // Merge dice stats
+  if (sessionStats.stats && sessionStats.stats.mostUsedDie) {
+    for (const [dieType, count] of Object.entries(
+      sessionStats.stats.mostUsedDie
+    )) {
+      diceStatsMap.set(dieType, (diceStatsMap.get(dieType) || 0) + count);
+    }
+  }
+  user.stats.diceStats = Object.fromEntries(diceStatsMap);
+
+  // After all stats are updated, check for achievements
+  user = checkAndUnlockAchievements(user, finalGameState);
+
+  return user;
+}
+
+function checkAndUnlockAchievements(user, finalGameState) {
+  if (!user || !finalGameState) return user;
+
+  const userAchs = user.achievements || {};
+
+  const unlock = (achId) => {
+    // Unlock only if it's not already unlocked
+    if (!userAchs[achId]?.unlocked) {
+      userAchs[achId] = { unlocked: true, date: new Date() };
+      console.log(
+        `[Achievements] Unlocked: ${achId} for user ${user.username}`
+      );
+    }
+  };
+
+  const totalStages = Object.keys(STAGE_CONFIGS).length;
+
+  // --- Check Individual Achievements ---
+
+  // 1. "I shall pass!": Defeat your first boss (in this run or any).
+  if (user.stats.totalBossesDefeated > 0) {
+    unlock("first_boss");
+  }
+
+  // 2. "The Temptation": Bribe your first boss.
+  if (user.stats.totalBribedBosses > 0) {
+    unlock("first_bribe");
+  }
+
+  // 3. "Roller!": Roll 100+ dice in total.
+  if (user.stats.totalDiceRolled >= 100) {
+    unlock("roll_100");
+  }
+
+  // 4. "Kilos on Your Pockets": Have $500+ in a single run.
+  if (finalGameState.playerMoney >= 500) {
+    unlock("money_500");
+  }
+
+  // --- Run-Ending Achievements ---
+  if (finalGameState.isGameOver) {
+    // 5. "Area Cleared!": Win a run defeating all bosses (no bribes).
+    if (
+      finalGameState.gamePhase === "game_won" &&
+      finalGameState.bribesBosses === 0 &&
+      finalGameState.bossesDefeated === totalStages
+    ) {
+      unlock("clear_run");
+    }
+
+    // 6. "Glorious Victory!": Win a run defeating all bosses perfectly.
+    if (
+      finalGameState.gamePhase === "game_won" &&
+      finalGameState.bribesBosses === 0 &&
+      finalGameState.bossesDefeated === totalStages &&
+      finalGameState.perfectBossDefeats === totalStages
+    ) {
+      unlock("perfect_run");
+    }
+
+    // 7. "Master of Persuasion": Win a run bribing all bosses.
+    if (
+      finalGameState.gamePhase === "game_won" &&
+      finalGameState.bossesDefeated === 0 &&
+      finalGameState.bribesBosses === totalStages
+    ) {
+      unlock("bribe_all");
+    }
+  }
+
+  user.achievements = userAchs;
+  return user;
+}
+
 // Export the functions we need to use in our routes
 module.exports = {
   initializeNewGame,
@@ -1016,7 +1181,7 @@ module.exports = {
   handlePlayerChoice,
   handlePlayerBribe,
   handleThiefSkill,
-  handleMageSkill,
+  handleWizardSkill,
   handleFleeMinion,
   startBossEncounter,
   STAGE_CONFIGS,

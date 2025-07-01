@@ -53,7 +53,7 @@ function heroThumbnail(id, skin) {
 }
 
 function onConfirm() {
-  gameStore.playerSkin = localSkin.value; // Update the store
+  gameStore.updatePlayerSkin(localSkin.value); // Update the store and persist
   emit("confirm");
 }
 </script>

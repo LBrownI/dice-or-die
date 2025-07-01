@@ -3,7 +3,6 @@ import { ref, onMounted, computed, watch, onUnmounted } from "vue";
 import { useGameStore } from "../stores/game";
 import { useRoute, useRouter } from "vue-router";
 import GameBoard from "../components/GameBoard.vue";
-import GameInfo from "../components/GameInfo.vue";
 import ReservedDiceDisplay from "../components/ReservedDiceDisplay.vue";
 import ChoiceModal from "../components/ChoiceModal.vue";
 import SummaryModal from "@/components/SummaryModal.vue";
@@ -103,7 +102,6 @@ const imagePathsToPreload = [
   // Jefes
   `${import.meta.env.BASE_URL}assets/images/bosses/dark_godcat.webp`,
   `${import.meta.env.BASE_URL}assets/images/bosses/dragon_treasurer.png`,
-  `${import.meta.env.BASE_URL}assets/images/bosses/goblin_general.png`,
   `${import.meta.env.BASE_URL}assets/images/bosses/greedy_goblin_king.webp`,
   `${import.meta.env.BASE_URL}assets/images/bosses/orc_general.png`,
   `${import.meta.env.BASE_URL}assets/images/bosses/tax_collector.png`,
@@ -144,18 +142,23 @@ const bossImageUrl = computed(() => {
   return ""; // Return empty string or a placeholder if no boss image
 });
 
+watch(
+  () => route.params.sessionId,
+  async (newSessionId) => {
+    if (newSessionId) {
+      await gameStore.loadGame(newSessionId);
+      console.log(">>> Estado del juego cargado:", gameStore);
+    } else {
+      console.error("No game session ID found in the URL.");
+    }
+  },
+  { immediate: true }
+);
+
 onMounted(async () => {
   preloadImages(imagePathsToPreload);
   // Set assetsLoaded to true after preloading images
   gameStore.assetsLoaded = true;
-
-  const sessionId = route.params.sessionId;
-  if (sessionId) {
-    await gameStore.loadGame(sessionId);
-    console.log(">>> Estado del juego cargado:", gameStore);
-  } else {
-    console.error("No game session ID found in the URL.");
-  }
 });
 
 onUnmounted(() => {
@@ -184,7 +187,7 @@ async function handleNewRun() {
     if (newGame && newGame._id) {
       router.push({ name: "Game", params: { sessionId: newGame._id } });
       // We might need to force a reload or ensure the component re-initializes
-      window.location.reload();
+      // window.location.reload();
     }
   } catch (error) {
     console.error("Failed to start a new run:", error);
@@ -234,7 +237,21 @@ function openSkinChanger() {
               @use="handleSkillUse"
             />
           </div>
-          <GameInfo class="game-info-content" @open-options="showOptionsModal = true" />
+          <div class="game-info-content">
+            <p class="stage-info">Stage: {{ gameStore.playerStage }} / 5</p>
+            <div class="turn-pos-info">
+              <span>↩️ Turn: {{ gameStore.totalRolls }}</span>
+              <span>Pos: {{ gameStore.playerPosition }}</span>
+            </div>
+            <p class="money-info">🪙 Money: ${{ gameStore.playerMoney }}</p>
+            <p v-if="gameStore.gameMessage" class="game-feedback">{{ gameStore.gameMessage }}</p>
+            <p v-else class="game-feedback">Lap {{ gameStore.playerLap }}/3. Roll a die!</p>
+          </div>
+
+          <div class="side-action-buttons">
+            <button class="side-btn" disabled>Run Info</button>
+            <button class="side-btn" @click="showOptionsModal = true">Options</button>
+          </div>
         </div>
 
         <div class="game-board-container">
@@ -249,10 +266,6 @@ function openSkinChanger() {
 
         <div class="right-action-panel">
           <ReservedDiceDisplay class="dice-reserve-component" />
-
-          <div class="action-buttons-group">
-            <!-- The roll and speed buttons are now removed from here -->
-          </div>
         </div>
       </div>
 
@@ -299,7 +312,7 @@ function openSkinChanger() {
   gap: 20px;
   justify-content: center;
   width: 100%;
-  max-width: 1250px;
+  max-width: 1400px;
 }
 
 .left-panel-area {
@@ -352,12 +365,40 @@ function openSkinChanger() {
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
   width: 100%;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stage-info,
+.money-info,
+.game-feedback {
+  margin: 0;
+  text-align: center;
+}
+.stage-info {
+  font-weight: bold;
+  font-size: 1.1em;
+}
+.turn-pos-info {
+  display: flex;
+  justify-content: space-around;
+  font-size: 0.9em;
+}
+.game-feedback {
+  font-style: italic;
+  font-size: 0.9em;
+  min-height: 2.7em; /* Reserve space for 3 lines of text */
+  color: #333;
+}
+.money-info {
+  font-size: 1.2em;
+  font-weight: bold;
 }
 
 .game-board-container {
   display: flex;
   justify-content: center;
-  align-items: flex-start;
 }
 
 .right-action-panel {
@@ -365,12 +406,31 @@ function openSkinChanger() {
   flex-direction: column;
   align-items: stretch;
   gap: 15px;
-  min-width: 170px;
-  max-width: 200px;
+  min-width: 280px;
+  max-width: 280px;
 }
 
 .dice-reserve-component {
   width: 100%;
+}
+
+.side-action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+.side-btn {
+  padding: 10px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 6px;
+  border: 1px solid #999;
+}
+.side-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .action-buttons-group {
