@@ -210,7 +210,7 @@ const bossImageUrl = computed(() => {
           Bribe the boss ${{ gameStore.currentBoss?.bribeCost || "??" }}
         </button>
 
-        <div v-if="gameStore.bossLastRoll !== null" class="boss-die-result">
+        <div v-if="gameStore.showBossRollAnimation" class="boss-die-result">
           🎲 {{ gameStore.bossLastRoll }}
         </div>
       </div>
@@ -225,6 +225,10 @@ const bossImageUrl = computed(() => {
         <img v-if="minionImageUrl" :src="minionImageUrl" alt="Minion" class="minion-image" />
         <p class="minion-hp-text">❤️ HP: {{ currentMinionSquare.effectDetails.hp }}</p>
         <p class="minion-info">Use a die from your pouch to attack!</p>
+
+        <div v-if="gameStore.showGeneralRollAnimation" class="minion-die-result">
+          🎲 {{ gameStore.lastGeneralRoll }}
+        </div>
         <button class="flee-button" @click="emit('flee-minion')">🏃‍♂️ Flee (Lose Money)</button>
       </div>
     </div>
@@ -315,6 +319,15 @@ const bossImageUrl = computed(() => {
   text-shadow: 0 0 10px #fff, 0 0 20px #fff;
 }
 
+.minion-die-result {
+  font-size: 4rem;
+  font-weight: bold;
+  color: #f7e46a;          /* amarillo dorado */
+  margin-top: 10px;
+  animation: pop-in 1s ease-out;
+  text-shadow: 0 0 10px #fff, 0 0 20px #fff;
+}
+
 @keyframes pop-in {
   0% {
     transform: scale(0.5);
@@ -389,7 +402,7 @@ const bossImageUrl = computed(() => {
   font-size: 4rem;
   font-weight: bold;
   color: white;
-  animation: pop-in 0.8s ease-out;
+  animation: pop-in 1.2s ease-out;
   text-shadow: 0 0 5px #fff, 0 0 5px #fff;
   z-index: 30;
   pointer-events: none;

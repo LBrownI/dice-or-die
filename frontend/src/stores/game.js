@@ -35,7 +35,7 @@ export const useGameStore = defineStore("game", () => {
   const assetsLoaded = ref(false);
   const highlightedTargetSquare = ref(null);
   const lastGeneralRoll = ref(null);
-  const showGeneralRoll = ref(false);
+  const showGeneralRollAnimation = ref(false);
   const boardIsReady = ref(false);
   const gameMessage = ref("");
   const playerCharacter = ref("knight"); // valor por defecto
@@ -47,6 +47,7 @@ export const useGameStore = defineStore("game", () => {
   const bossLastRoll = ref(null);
   const currentBossHP = ref(null);
   const currentBossMaxHP = ref(null);
+  const showBossRollAnimation = ref(false);
 
   // Game summary state
   const totalRolls = ref(0);
@@ -165,10 +166,10 @@ export const useGameStore = defineStore("game", () => {
       animationSpeedMultiplier.value = res.data.animationSpeedMultiplier;
       gameMessage.value =
         animationSpeedMultiplier.value === 0
-          ? "Velocidad: instantánea"
+          ? "Speed: instant"
           : animationSpeedMultiplier.value === 2
-          ? "Velocidad: rápida"
-          : "Velocidad: normal";
+          ? "Speed: fast"
+          : "Speed: normal";
     } catch (err) {
       console.error("Pinia: no se pudo cambiar la velocidad", err);
     }
@@ -179,6 +180,13 @@ export const useGameStore = defineStore("game", () => {
     if (animationSpeedMultiplier.value === 0) return 0;
     return baseDuration / animationSpeedMultiplier.value;
   }
+
+  function triggerBossRollAnimation(result) {
+    bossLastRoll.value = result;
+    showBossRollAnimation.value = true;
+    setTimeout(() => (showBossRollAnimation.value = false), 1000);
+  }
+
 
   async function rollDice(reservedDieIndex = -1) {
     if (!_id.value || isAnimating.value) return;
@@ -198,10 +206,13 @@ export const useGameStore = defineStore("game", () => {
 
       // --- ANIMATION & STATE PATCH ---
       lastGeneralRoll.value = updatedState.lastDiceRoll?.value;
-      showGeneralRoll.value = true;
-      setTimeout(() => {
-        showGeneralRoll.value = false;
-      }, 1000); // Hide after 1s
+      showGeneralRollAnimation.value = true;
+      setTimeout(() => { 
+        showGeneralRollAnimation.value = false; }, 1000);
+      
+      if (updatedState.gamePhase === "boss_encounter") {
+        triggerBossRollAnimation(updatedState.lastDiceRoll?.value);
+      }
       if (response.data.movementPath?.length) {
         for (const pos of response.data.movementPath) {
           playerPosition.value = pos;
@@ -363,11 +374,12 @@ export const useGameStore = defineStore("game", () => {
     assetsLoaded,
     highlightedTargetSquare,
     lastGeneralRoll,
-    showGeneralRoll,
     boardIsReady,
     gameMessage,
     currentBoss,
     currentDiceThrows,
+    showBossRollAnimation,
+    showGeneralRollAnimation,
     bossLastRoll,
     currentBossHP,
     currentBossMaxHP,

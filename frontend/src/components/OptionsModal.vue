@@ -5,13 +5,13 @@
 
       <div class="options-group">
         <label>Game Speed</label>
-        <button @click="toggleSpeed">
-          Velocidad:
+        <button class="option-button" @click="toggleSpeed">
+          Speed:
           {{
             gameStore.animationSpeedMultiplier === 0
-              ? "Instantánea"
+              ? "Instant"
               : gameStore.animationSpeedMultiplier === 2
-              ? "Rápida"
+              ? "Fast"
               : "Normal"
           }}
         </button>

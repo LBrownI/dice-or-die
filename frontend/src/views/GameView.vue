@@ -142,6 +142,10 @@ const bossImageUrl = computed(() => {
   return ""; // Return empty string or a placeholder if no boss image
 });
 
+const showGlobalDim = computed(() =>
+  ["boss_encounter", "minion_encounter"].includes(gameStore.gamePhase)
+);
+
 watch(
   () => route.params.sessionId,
   async (newSessionId) => {
@@ -253,7 +257,6 @@ function openSkinChanger() {
             <button class="side-btn" @click="showOptionsModal = true">Options</button>
           </div>
         </div>
-
         <div class="game-board-container">
           <GameBoard
             :player-image-url="dynamicPlayerImage"
@@ -267,6 +270,7 @@ function openSkinChanger() {
         <div class="right-action-panel">
           <ReservedDiceDisplay class="dice-reserve-component" />
         </div>
+              <div v-if="showGlobalDim" class="global-dim-overlay"></div>
       </div>
 
       <CharacterSelectorModal
@@ -322,6 +326,7 @@ function openSkinChanger() {
   gap: 15px;
   width: 260px;
   min-width: 230px;
+  position: relative;
 }
 
 .player-display-area {
@@ -335,6 +340,7 @@ function openSkinChanger() {
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
   width: 100%;
   box-sizing: border-box;
+  z-index: 101;
 }
 
 /* New styles for the large static player image */
@@ -368,6 +374,7 @@ function openSkinChanger() {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  z-index: 101;
 }
 
 .stage-info,
@@ -412,6 +419,8 @@ function openSkinChanger() {
 
 .dice-reserve-component {
   width: 100%;
+  position: relative;
+  z-index: 101;
 }
 
 .side-action-buttons {
@@ -546,4 +555,13 @@ function openSkinChanger() {
 .bribe-button:hover {
   background-color: #f39c12;
 }
+
+.global-dim-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 30;          /* ⬅️ por debajo de minion (40) y boss (50)   */
+  pointer-events: none; /* no intercepta clics */
+}
+
 </style>

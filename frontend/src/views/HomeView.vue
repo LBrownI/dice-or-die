@@ -114,16 +114,15 @@ onUnmounted(() => {
 
 <style scoped>
 .main-menu-bg {
-  min-height: 100vh;
-  width: 100vw;
+  position: fixed;        /* se “pega” a la ventana */
+  inset: 0;               /* top:0; right:0; bottom:0; left:0 */
   background: radial-gradient(circle at 60% 40%, #2e2e4d 0%, #b02a2a 100%);
-  /* Swirl effect: animated SVG or canvas could be added for more Balatro feel */
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
-  position: relative;
+  overflow: hidden;       /* por si algo interno crece accidentalmente */
 }
+
 .main-menu-container {
   display: flex;
   flex-direction: column;
