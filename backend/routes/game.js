@@ -53,24 +53,35 @@ router.get("/:id", async (req, res) => {
 // POST /api/game/:id/roll
 router.post("/:id/roll", async (req, res) => {
   try {
-    let session = await GameSession.findById(req.params.id);
-    if (!session || session.isGameOver)
+    /** 1. Cargamos la sesión como documento Mongoose */
+    const doc = await GameSession.findById(req.params.id);
+    if (!doc || doc.isGameOver)
       return res.status(404).json({ message: "Game not found or is over" });
 
-    const { reservedDieIndex } = req.body;
-    session = handlePlayerTurn(session, reservedDieIndex);
+    /** 2. Lo convertimos en un objeto JS *sin* getters ni metadatos.
+        Trabajaremos sobre él para no depender de Mongoose durante la lógica. */
+    const state = doc.toObject({ depopulate: true, versionKey: false });
 
-    // Tell Mongoose these nested objects have changed before saving
-    session.markModified("boardSquares");
-    session.markModified("choiceDetails");
+    /** 3. Aplicamos la lógica del turno (esto muta `state`) */
+    const updatedState = handlePlayerTurn(state, req.body.reservedDieIndex);
 
-    const updatedSession = await session.save();
-    res.json(updatedSession);
+    /** 4. Persistimos el nuevo estado en Mongo copiándolo a `doc`
+        (esto mantiene la partida grabada, pero ya no afecta a la respuesta) */
+    Object.assign(doc, updatedState);
+    doc.markModified("boardSquares");
+    doc.markModified("choiceDetails");
+    doc.markModified("currentBoss");        // objeto anidado
+    await doc.save();
+
+    /** 5. Enviamos al cliente *exactamente* lo que acaba de generar la lógica */
+    res.json(updatedState);
   } catch (err) {
     console.error("Error during /roll:", err);
     res.status(500).json({ error: err.message });
   }
 });
+
+
 
 // POST /api/game/:id/choice
 router.post("/:id/choice", async (req, res) => {
