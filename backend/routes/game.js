@@ -1,3 +1,4 @@
+//backend\routes\game.js
 const express = require("express");
 const router = express.Router();
 const GameSession = require("../models/GameSession");
@@ -75,14 +76,13 @@ router.post("/:id/roll", async (req, res) => {
     }
 
     /** 3. Aplicamos la lógica del turno (esto muta `state` y `user`) */
-    const result = handlePlayerTurn(
+    const { updatedState, updatedUser, movementPath } = handlePlayerTurn(
       state,
       reservedDieIndex,
       user ? user.toObject() : null
     );
-    const { updatedState, updatedUser } = result;
 
-    /** 4. Persistimos el nuevo estado en Mongo copiándolo a `doc` y `user` */
+    // 4. Persistimos los cambios en la DB
     Object.assign(doc, updatedState);
     doc.markModified("boardSquares");
     doc.markModified("choiceDetails");
@@ -90,17 +90,15 @@ router.post("/:id/roll", async (req, res) => {
     doc.markModified("stats");
     await doc.save();
 
+    // Guardamos al usuario si se modificó
     if (user && updatedUser) {
-      // Only save the user if the logic function actually returned an updated version
-      if (result.updatedUser) {
-        user.stats = updatedUser.stats;
-        user.achievements = updatedUser.achievements;
-        await user.save();
-      }
+      user.stats        = updatedUser.stats;
+      user.achievements = updatedUser.achievements;
+      await user.save();
     }
 
-    /** 5. Enviamos al cliente *exactamente* lo que acaba de generar la lógica */
-    res.json({ updatedState, updatedUser });
+    // 5. Respondemos al cliente
+    res.json({ updatedState, updatedUser, movementPath });
   } catch (err) {
     console.error("Error during /roll:", err);
     res.status(500).json({ error: err.message });
@@ -290,5 +288,26 @@ router.post("/:id/skill/use", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// POST /api/game/:id/speed  – cambia la velocidad de animación
+router.post("/:id/speed", async (req, res) => {
+  try {
+    const { multiplier } = req.body;
+    if (multiplier === undefined)
+      return res.status(400).json({ message: "No multiplier provided" });
+
+    const doc = await GameSession.findById(req.params.id);
+    if (!doc) return res.status(404).json({ message: "Game not found" });
+
+    doc.animationSpeedMultiplier = multiplier;
+    await doc.save();
+
+    res.json({ animationSpeedMultiplier: doc.animationSpeedMultiplier });
+  } catch (err) {
+    console.error("Error during /speed:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 module.exports = router;

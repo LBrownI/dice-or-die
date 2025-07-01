@@ -1,7 +1,13 @@
+//frontend\src\stores\game.js
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import apiClient from "../services/api";
 import { useAuthStore } from "./auth";
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
 
 export const useGameStore = defineStore("game", () => {
   // --- STATE ---
@@ -148,19 +154,24 @@ export const useGameStore = defineStore("game", () => {
     }
   }
 
-  // This is a UI-only action. It does NOT need to call the backend.
-  function toggleAnimationSpeed() {
-    if (animationSpeedMultiplier.value === 1) animationSpeedMultiplier.value = 2;
-    else if (animationSpeedMultiplier.value === 2) animationSpeedMultiplier.value = 0;
-    else animationSpeedMultiplier.value = 1;
-
-    gameMessage.value = `Animation speed: ${
-      animationSpeedMultiplier.value === 0
-        ? "Instant"
-        : animationSpeedMultiplier.value === 2
-        ? "Faster"
-        : "Normal"
-    }`;
+// Cambia la velocidad y avisa al backend
+  async function setAnimationSpeed(nextMultiplier) {
+    if (!_id.value) return;
+    try {
+      const res = await apiClient.post(
+        `/api/game/${_id.value}/speed`,
+        { multiplier: nextMultiplier }
+      );
+      animationSpeedMultiplier.value = res.data.animationSpeedMultiplier;
+      gameMessage.value =
+        animationSpeedMultiplier.value === 0
+          ? "Velocidad: instantánea"
+          : animationSpeedMultiplier.value === 2
+          ? "Velocidad: rápida"
+          : "Velocidad: normal";
+    } catch (err) {
+      console.error("Pinia: no se pudo cambiar la velocidad", err);
+    }
   }
 
   // This is a helper for the animation UI
@@ -191,8 +202,15 @@ export const useGameStore = defineStore("game", () => {
       setTimeout(() => {
         showGeneralRoll.value = false;
       }, 1000); // Hide after 1s
-      await new Promise((res) => setTimeout(res, getAnimationDelay(500)));
+      if (response.data.movementPath?.length) {
+        for (const pos of response.data.movementPath) {
+          playerPosition.value = pos;
+          await sleep(getAnimationDelay(playerStepBaseDuration.value));
+        }
+      }
+      // Finalmente aplicamos el estado “oficial”
       this.$patch(updatedState);
+      
     } catch (error) {
       console.error("Pinia: Failed to roll dice", error);
     } finally {
@@ -374,7 +392,7 @@ export const useGameStore = defineStore("game", () => {
     rollDice,
     playerMakesChoice,
     payBossBribe,
-    toggleAnimationSpeed,
+    setAnimationSpeed,
     toggleSkill,
     useSkill,
     getAnimationDelay,

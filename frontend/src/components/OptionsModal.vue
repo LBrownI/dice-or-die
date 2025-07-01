@@ -5,9 +5,17 @@
 
       <div class="options-group">
         <label>Game Speed</label>
-        <button class="option-button" @click="gameStore.toggleAnimationSpeed">
-          {{ gameStore.currentSpeedText }}
+        <button @click="toggleSpeed">
+          Velocidad:
+          {{
+            gameStore.animationSpeedMultiplier === 0
+              ? "Instantánea"
+              : gameStore.animationSpeedMultiplier === 2
+              ? "Rápida"
+              : "Normal"
+          }}
         </button>
+
       </div>
 
       <div v-if="context === 'in-game'" class="options-group">
@@ -34,16 +42,25 @@
 <script setup>
 import { useGameStore } from "@/stores/game";
 
-defineProps({
-  context: {
-    type: String,
-    default: "in-game", // Can be 'in-game' or 'main-menu'
-  },
-});
+/* Props & emits */
+defineProps({ context: { type: String, default: "in-game" } });
+const emit = defineEmits(["close","new-run","main-menu","show-stats","change-skin"]);
 
-const emit = defineEmits(["close", "new-run", "main-menu", "show-stats", "change-skin"]);
+/* Store */
 const gameStore = useGameStore();
+
+/* ÚNICA función para alternar velocidad */
+function toggleSpeed() {
+  const next =
+    gameStore.animationSpeedMultiplier === 1 ? 2 :
+    gameStore.animationSpeedMultiplier === 2 ? 0 : 1;
+
+  // Llama a la acción Pinia que ya dispara el endpoint correcto
+  gameStore.setAnimationSpeed(next);
+}
 </script>
+
+
 
 <style scoped>
 .options-modal-overlay {
