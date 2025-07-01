@@ -18,6 +18,7 @@ const showCharacterSelector = ref(false);
 const showOptionsModal = ref(false);
 const showSkinChangerModal = ref(false);
 const audioPlayer = ref(null);
+const diceSfxList = ref([]);  
 
 const characters = [
   { id: "knight", name: "Knight", skins: ["blue", "green", "red", "black"] },
@@ -107,6 +108,14 @@ const imagePathsToPreload = [
   `${import.meta.env.BASE_URL}assets/images/bosses/tax_collector.png`,
 ];
 
+// Preload sound effects
+const diceSfxPaths = [
+  `${import.meta.env.BASE_URL}assets/sfx/dice-roll-1.mp3`,
+  `${import.meta.env.BASE_URL}assets/sfx/dice-roll-2.mp3`,
+  `${import.meta.env.BASE_URL}assets/sfx/dice-roll-3.mp3`,
+  `${import.meta.env.BASE_URL}assets/sfx/dice-roll-4.mp3`,
+];
+
 function preloadImages(imagePaths) {
   imagePaths.forEach((path) => {
     const img = new Image();
@@ -159,10 +168,30 @@ watch(
   { immediate: true }
 );
 
+watch(
+  () => gameStore.showGeneralRollAnimation,
+  (val) => {
+    if (val && diceSfxList.value.length) {
+      // Elegir audio aleatorio
+      const idx = Math.floor(Math.random() * diceSfxList.value.length);
+      const clip = diceSfxList.value[idx];
+      clip.currentTime = 0;
+      clip.play().catch(() => {}); // silencia posibles errores de autoplay
+    }
+  }
+);
+
 onMounted(async () => {
   preloadImages(imagePathsToPreload);
   // Set assetsLoaded to true after preloading images
   gameStore.assetsLoaded = true;
+
+  diceSfxList.value = diceSfxPaths.map((p) => {
+    const a = new Audio(p);
+    a.volume = 0.8;          // ajusta volumen global del sfx
+    a.load();                // precarga
+    return a;
+  });
 });
 
 onUnmounted(() => {
