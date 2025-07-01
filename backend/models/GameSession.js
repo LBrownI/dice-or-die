@@ -1,52 +1,26 @@
-// In your backend, e.g., models/GameSession.js
+// backend/models/GameSession.js
 const mongoose = require("mongoose");
+const { Schema } = mongoose;
 
-const gameSessionSchema = new mongoose.Schema(
+const gameSessionSchema = new Schema(
   {
-    // Link to a user if you have authentication
-    // userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-
-    // Player State (from Pinia's state)
     playerPosition: { type: Number, default: 0 },
     playerMoney: { type: Number, default: 0 },
     playerLap: { type: Number, default: 1 },
     playerStage: { type: Number, default: 1 },
     playerCharacter: { type: String, default: "knight" },
     playerSkin: { type: String, default: "blue" },
-    lastDiceRoll: {
-      // previously lastDiceRoll: { type: Number, default: null }
-      type: { type: String }, // e.g., 'Random', 'Fixed'
-      value: { type: Number }, // e.g., 6
-    },
+    lastDiceRoll: { type: Object, default: null },
     isGameOver: { type: Boolean, default: false },
-    gamePhase: { type: String, default: "rolling" }, // e.g., 'rolling', 'choosing', 'moving'
-    choiceDetails: {
-      type: Object,
-      default: null,
-    },
+    gamePhase: { type: String, default: "rolling" },
+    choiceDetails: { type: Object, default: null },
 
-    // Player Inventory
-    reservedDice: [
-      {
-        type: { type: String, required: true }, // e.g., 'Fixed', 'D20'
-        value: { type: Number }, // Only for fixed-value dice
-      },
-    ],
-    maxDiceInBag: { type: Number, default: 15 }, // Default max reserved dice
+    reservedDice: [Object],
+    maxDiceInBag: { type: Number, default: 15 },
 
-    // Board State (need to decide if this changes per player or is generated)
-    // The dynamically generated squares can be stored here.
-    boardRows: { type: Number, default: 6 }, // Default to 3 rows
-    boardCols: { type: Number, default: 6 }, // Default to 3 columns
-    boardSquares: [
-      {
-        id: Number,
-        baseType: String,
-        currentEffectType: String,
-        isTempBad: Boolean,
-        effectDetails: Object,
-      },
-    ],
+    boardRows: { type: Number, default: 6 },
+    boardCols: { type: Number, default: 6 },
+    boardSquares: [Object],
 
     animationSpeedMultiplier: { type: Number, default: 1 },
     isAnimating: { type: Boolean, default: false },
@@ -54,15 +28,16 @@ const gameSessionSchema = new mongoose.Schema(
     playerStepBaseDuration: { type: Number, default: 300 },
     lastPlayerPositionBeforeThisMove: { type: Number, default: 0 },
 
-    // Summary Stats
     totalRolls: { type: Number, default: 0 },
     bossesDefeated: { type: Number, default: 0 },
     diceObtained: { type: Number, default: 0 },
     perfectBossDefeats: { type: Number, default: 0 },
     bribesBosses: { type: Number, default: 0 },
   },
-  { timestamps: true }
-); // Adds createdAt and updatedAt
+  {
+    timestamps: true,
+    strict: false,     // permite guardar/leer claves no declaradas
+  }
+);
 
-const GameSession = mongoose.model("GameSession", gameSessionSchema);
-module.exports = GameSession;
+module.exports = mongoose.model("GameSession", gameSessionSchema);

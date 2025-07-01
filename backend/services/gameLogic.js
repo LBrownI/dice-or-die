@@ -304,6 +304,37 @@ function setupStage(gameState) {
   return gameState;
 }
 
+function startBossEncounter(gameState) {
+  const cfg = STAGE_CONFIGS[gameState.playerStage];
+  const boss = cfg.bossDefeatCondition;
+
+
+  gameState.currentBoss = {
+    name: cfg.bossName,
+    image: cfg.bossImage,
+    maxHP: boss.hp,
+    hp: boss.hp,
+    diceThrows: boss.diceThrows,
+    bribeCost: boss.bribeCost,
+  };
+
+  gameState.remainingBossRolls = boss.diceThrows;
+  gameState.currentBossHP = boss.hp;
+  gameState.currentBossMaxHP = boss.hp;
+
+  gameState.gamePhase = "boss_encounter";
+  gameState.gameMessage = `¡Aparece ${cfg.bossName}! Tienes ${boss.diceThrows} tiradas para causarle ${boss.hp} de daño.`;
+
+  console.log('→ Boss object', {
+  currentBoss: gameState.currentBoss,
+  currentBossHP: gameState.currentBossHP,
+  remainingBossRolls: gameState.remainingBossRolls,
+});
+
+  return gameState;
+}
+
+
 // --- Main Initialization Function ---
 function initializeNewGame() {
   let newGame = {
@@ -340,6 +371,12 @@ function initializeNewGame() {
     bossesDefeated: 0,
     perfectBossDefeats: 0,
     bribesBosses: 0,
+
+    // Boss State
+    currentBoss: null,
+    currentBossHP: null,
+    currentBossMaxHP: null,
+    remainingBossRolls: 0,
   };
 
   // Now use our logic to generate the dynamic parts
@@ -355,14 +392,12 @@ function handlePlayerTurn(gameState, reservedDieIndex = -1) {
   const config = STAGE_CONFIGS[gameState.playerStage];
 
   if (reservedDieIndex >= 0 && gameState.reservedDice[reservedDieIndex]) {
-    // Use the reserved die and remove it from the array
     dieToRoll = gameState.reservedDice[reservedDieIndex];
     gameState.reservedDice.splice(reservedDieIndex, 1);
   } else {
     dieToRoll = { type: "Random" };
   }
 
-  // Calculate steps based on die type
   switch (dieToRoll.type) {
     case "Fixed":
       steps = dieToRoll.value || 1;
@@ -376,17 +411,29 @@ function handlePlayerTurn(gameState, reservedDieIndex = -1) {
     case "Reverse Random":
       steps = -getRandomInt(1, 6);
       break;
-    default: // Random
+    default:
       steps = getRandomInt(1, 6);
   }
 
   gameState.lastDiceRoll = { value: steps, type: dieToRoll.type };
 
-  // 2. Move the player
+  // 2. Move the player  (bloque sustituido)
   const totalBoardSquares = calculateTotalBoardSquares(config);
   gameState.lastPlayerPositionBeforeThisMove = gameState.playerPosition;
-  gameState.playerPosition =
-    (gameState.playerPosition + steps + totalBoardSquares) % totalBoardSquares;
+
+  let newPosition;
+  if (steps >= 0) {
+    const distToLapEnd = totalBoardSquares - gameState.playerPosition;
+    newPosition =
+      steps >= distToLapEnd
+        ? 0
+        : gameState.playerPosition + steps;
+  } else {
+    newPosition =
+      (gameState.playerPosition + steps + totalBoardSquares) %
+      totalBoardSquares;
+  }
+  gameState.playerPosition = newPosition;
 
   // 3. Handle landing effects
   const landedSquare = gameState.boardSquares.find(
@@ -482,18 +529,7 @@ function handlePlayerTurn(gameState, reservedDieIndex = -1) {
   ) {
     gameState.playerLap++;
     if (gameState.playerLap > config.lapsToComplete) {
-      // Stage completed, move to next stage or boss
-      gameState.playerStage++;
-      if (gameState.playerStage > Object.keys(STAGE_CONFIGS).length) {
-        gameState.isGameOver = true;
-        gameState.gamePhase = "game_won";
-        gameState.gameMessage =
-          "¡Felicidades! ¡Has completado todos los niveles!";
-      } else {
-        // Setup next stage
-        gameState = setupStage(gameState);
-        gameState.gameMessage = `¡Nivel ${gameState.playerStage} completado! Comenzando nuevo nivel...`;
-      }
+      gameState = startBossEncounter(gameState);
     } else {
       // New lap, regenerate effects
       setupLapEffects(gameState);
