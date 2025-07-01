@@ -4,21 +4,33 @@ import { useRouter } from "vue-router";
 import { useGameStore } from "../stores/game";
 import { ref, onMounted, onUnmounted } from "vue";
 import D20Die3D from "../components/D20Die3D.vue";
+import CharacterSelectorModal from "../components/CharacterSelectorModal.vue";
+import OptionsModal from "../components/OptionsModal.vue";
 
 const router = useRouter();
 const gameStore = useGameStore();
 const mainMenuAudio = ref(null);
+const showCharacterSelector = ref(false);
+const showOptionsMenu = ref(false);
 
-async function startNewGame() {
+const characters = [
+  { id: "knight", name: "Knight", skins: ["blue", "green", "red", "black"] },
+  { id: "thief", name: "Thief", skins: ["blue", "green", "purple", "red"] },
+  { id: "wizard", name: "Wizard", skins: ["blue", "green", "purple", "red"] },
+];
+
+async function handleCharacterSelection() {
+  // Hide the modal first
+  showCharacterSelector.value = false;
   try {
-    const newGame = await gameStore.createGame();
+    // The v-model on the selector has already updated the store's character/skin
+    const newGame = await gameStore.createGame(); // The store now knows the selected character
     if (newGame && newGame._id) {
-      // Stop music when leaving menu
       if (mainMenuAudio.value) mainMenuAudio.value.pause();
       router.push({ name: "Game", params: { sessionId: newGame._id } });
     }
   } catch (error) {
-    console.error("Could not start a new game:", error);
+    console.error("Could not start a new game after character selection:", error);
   }
 }
 
@@ -43,8 +55,8 @@ onUnmounted(() => {
       </div>
       <div class="main-menu-buttons-row">
         <router-link to="/login" class="menu-btn profile-btn">Profile</router-link>
-        <button class="menu-btn play-btn" @click="startNewGame">PLAY</button>
-        <button class="menu-btn options-btn" disabled>Options</button>
+        <button class="menu-btn play-btn" @click="showCharacterSelector = true">PLAY</button>
+        <button class="menu-btn options-btn" @click="showOptionsMenu = true">Options</button>
         <button class="menu-btn collection-btn" disabled>Collection</button>
       </div>
       <!-- Hidden audio for soundtrack, only wav -->
@@ -53,6 +65,19 @@ onUnmounted(() => {
         Your browser does not support the audio element.
       </audio>
     </div>
+
+    <!-- Character Selector Modal -->
+    <CharacterSelectorModal
+      v-if="showCharacterSelector"
+      v-model:character="gameStore.playerCharacter"
+      v-model:skin="gameStore.playerSkin"
+      :characters="characters"
+      @confirm="handleCharacterSelection"
+      @cancel="showCharacterSelector = false"
+    />
+
+    <!-- Options Modal for Main Menu -->
+    <OptionsModal v-if="showOptionsMenu" context="main-menu" @close="showOptionsMenu = false" />
   </div>
 </template>
 

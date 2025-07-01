@@ -15,12 +15,17 @@ const gameSessionSchema = new Schema(
     gamePhase: { type: String, default: "rolling" },
     choiceDetails: { type: Object, default: null },
 
-    reservedDice: [Object],
+    reservedDice: { type: [Object], default: [] },
     maxDiceInBag: { type: Number, default: 15 },
 
     boardRows: { type: Number, default: 6 },
     boardCols: { type: Number, default: 6 },
     boardSquares: [Object],
+
+    currentBoss: { type: Object, default: null },
+    currentDiceThrows: { type: [Number], default: [] }, // Array of numbers
+    currentBossHP: { type: Number, default: null },
+    currentBossMaxHP: { type: Number, default: null },
 
     animationSpeedMultiplier: { type: Number, default: 1 },
     isAnimating: { type: Boolean, default: false },
@@ -33,10 +38,27 @@ const gameSessionSchema = new Schema(
     diceObtained: { type: Number, default: 0 },
     perfectBossDefeats: { type: Number, default: 0 },
     bribesBosses: { type: Number, default: 0 },
+
+    skillState: {
+      type: Object,
+      default: () => ({
+        isActive: false, // For toggled skills like Knight/Mage
+        isUsedInEncounter: false, // Cooldown reset per encounter
+      }),
+    },
+
+    stats: {
+      type: Map,
+      of: Schema.Types.Mixed,
+      default: () => ({
+        mostRolledNumber: {}, // { '3': 5, '6': 10 }
+        mostUsedDie: {}, // { 'Random': 15, 'Fixed': 8 }
+      }),
+    },
   },
   {
     timestamps: true,
-    strict: false,     // permite guardar/leer claves no declaradas
+    strict: false, // permite guardar/leer claves no declaradas
   }
 );
 

@@ -3,27 +3,34 @@ import { computed } from "vue";
 import { useGameStore } from "../stores/game";
 
 const gameStore = useGameStore();
+const emit = defineEmits(["open-options"]);
+
 const playerPosition = computed(() => gameStore.playerPosition);
 const playerMoney = computed(() => gameStore.playerMoney);
 const playerLap = computed(() => gameStore.playerLap);
 const playerStage = computed(() => gameStore.playerStage);
+const totalRolls = computed(() => gameStore.totalRolls);
 const lastDiceRoll = computed(() => gameStore.lastDiceRoll);
 const gameMessage = computed(() => gameStore.gameMessage);
 </script>
 
 <template>
   <div class="game-stats-panel">
-    <h3>Etapa: {{ playerStage }} | Vuelta: {{ playerLap }} / 3</h3>
-    <p>⬇️Posición: {{ playerPosition }}</p>
-    <p>🪙Dinero: ${{ playerMoney }}</p>
+    <div class="panel-header">
+      <div class="header-buttons">
+        <button class="header-btn" disabled>Run Info</button>
+        <button class="header-btn" @click="emit('open-options')">Options</button>
+      </div>
+      <h3>Stage: {{ playerStage }} | Lap: {{ playerLap }} / 3</h3>
+    </div>
+    <p>↩️ Turn: {{ totalRolls }}</p>
+    <p>⬇️ Position: {{ playerPosition }}</p>
+    <p>🪙 Money: ${{ playerMoney }}</p>
     <hr />
-    <div class="debug-info">
-      <p v-if="lastDiceRoll">
-        Última tirada: {{ lastDiceRoll.value }} ({{ lastDiceRoll.type }} die,
-        {{ lastDiceRoll.direction }})
-      </p>
+    <div class="info-messages">
+      <p v-if="lastDiceRoll">Last Roll: {{ lastDiceRoll.value }} ({{ lastDiceRoll.type }} die)</p>
       <p class="game-feedback" v-if="gameMessage">{{ gameMessage }}</p>
-      <p v-if="!lastDiceRoll && !gameMessage">Tira el dado!</p>
+      <p v-if="!lastDiceRoll && !gameMessage">Roll a die to start!</p>
     </div>
   </div>
 </template>
@@ -42,11 +49,42 @@ const gameMessage = computed(() => gameStore.gameMessage);
   justify-content: center; /* Center content vertically */
   box-sizing: border-box;
 }
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 5px;
+}
+
+.header-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.header-btn {
+  padding: 2px 6px;
+  font-size: 0.7rem;
+  background-color: #d1d1d1;
+  border: 1px solid #999;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.header-btn:hover {
+  background-color: #bfbfbf;
+}
+.header-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 h3 {
   margin-top: 0;
   margin-bottom: 5px;
   font-size: 1em; /* Adjusted */
   color: #333;
+  text-align: right;
+  flex-grow: 1;
 }
 p {
   margin: 3px 0; /* Compact spacing */

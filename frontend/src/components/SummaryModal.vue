@@ -13,23 +13,23 @@ const totalBosses = 5; // Hardcoded for now, could be moved to a constant
 
 function getEnding() {
   if (bribedBosses === totalBosses) {
-    return "💰 Dejaste que el dinero te corrompiera... ¡El poder del soborno te consumió!";
+    return "💰 You let money corrupt you... The power of bribery consumed you!";
   } else if (bribedBosses > bosses) {
-    return "🤝 Preferiste negociar antes que pelear... ¿Habrá sido lo correcto?";
+    return "🤝 You preferred to negotiate rather than fight... Was that the right choice?";
   } else if (bosses > bribedBosses) {
     if (perfectBosses > 0) {
-      return "⚔️ Un guerrero habilidoso que no teme enfrentar a sus enemigos.";
+      return "⚔️ A skilled warrior who does not fear facing their enemies.";
     } else {
-      return "🗡️ Derrotaste a tus enemigos con valentía, aunque no siempre con precisión.";
+      return "🗡️ You defeated your enemies with bravery, though not always with precision.";
     }
   } else if (bosses === totalBosses) {
     if (perfectBosses === totalBosses) {
-      return "👑 ¡LEYENDA! Derrotaste a todos los jefes con precisión perfecta. ¡Increíble!";
+      return "👑 LEGEND! You defeated all bosses with perfect precision. Incredible!";
     } else {
-      return "🏆 ¡Un verdadero campeón! Derrotaste a todos los jefes sin recurrir a sobornos.";
+      return "🏆 A true champion! You defeated all bosses without resorting to bribes.";
     }
   }
-  return "🎮 El viaje ha terminado... ¿Pero fue este el mejor camino?";
+  return "🎮 The journey has ended... But was this the best path?";
 }
 
 function restartGame() {
@@ -42,17 +42,17 @@ function restartGame() {
 <template>
   <div class="modal-backdrop">
     <div class="modal-content">
-      <h2>🏁 Resumen de la Partida</h2>
+      <h2>🏁 Game Summary</h2>
       <ul class="summary-list">
-        <li>💰 Dinero reunido: ${{ money }}</li>
-        <li>🎲 Dados lanzados: {{ rolls }}</li>
-        <li>🎁 Dados obtenidos: {{ dice }}</li>
-        <li>⚔️ Jefes derrotados: {{ bosses }}</li>
-        <li>✨ Derrotas perfectas: {{ perfectBosses }}</li>
-        <li>💸 Jefes sobornados: {{ bribedBosses }}</li>
+        <li>💰 Money collected: ${{ money }}</li>
+        <li>🎲 Dice rolled: {{ rolls }}</li>
+        <li>🎁 Dice obtained: {{ dice }}</li>
+        <li>⚔️ Bosses defeated: {{ bosses }}</li>
+        <li>✨ Perfect defeats: {{ perfectBosses }}</li>
+        <li>💸 Bosses bribed: {{ bribedBosses }}</li>
       </ul>
       <p class="ending-message">{{ getEnding() }}</p>
-      <button @click="restartGame">Reiniciar Partida</button>
+      <button @click="restartGame">Restart Game</button>
     </div>
   </div>
 </template>

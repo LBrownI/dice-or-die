@@ -13,14 +13,24 @@ function useReservedDie(index) {
 
   if (gameStore.isGameOver || !die) return;
 
-  // Use the new rollDice action with the reserved die index
-  gameStore.rollDice(index);
+  // --- MAGE SKILL LOGIC ---
+  if (gameStore.playerCharacter === "mage" && gameStore.skillState.isActive) {
+    if (gameStore.reservedDice.length >= gameStore.maxDiceInBag) {
+      alert("Cannot duplicate, pouch is full!");
+      return;
+    }
+    // Use the generic 'useSkill' action, passing the target die index
+    gameStore.useSkill({ dieIndex: index });
+  } else {
+    // For all other cases, roll the die
+    gameStore.rollDice(index);
+  }
 }
 </script>
 
 <template>
   <div class="reserved-dice-container">
-    <h3>Dados en la bolsa ({{ diceBagCapacityDisplay }})</h3>
+    <h3>Dice Pouch ({{ diceBagCapacityDisplay }})</h3>
     <p v-if="reservedDice.length === 0" class="no-dice-text">None</p>
     <div class="dice-grid">
       <SingleDieDisplay

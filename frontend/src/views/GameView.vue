@@ -1,22 +1,29 @@
 <script setup>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch, onUnmounted } from "vue";
 import { useGameStore } from "../stores/game";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import GameBoard from "../components/GameBoard.vue";
 import GameInfo from "../components/GameInfo.vue";
 import ReservedDiceDisplay from "../components/ReservedDiceDisplay.vue";
 import ChoiceModal from "../components/ChoiceModal.vue";
 import SummaryModal from "@/components/SummaryModal.vue";
 import CharacterSelectorModal from "../components/CharacterSelectorModal.vue";
+import OptionsModal from "../components/OptionsModal.vue";
+import ChangeSkinModal from "../components/ChangeSkinModal.vue";
+import SkillButton from "../components/SkillButton.vue";
 
 const gameStore = useGameStore();
 const route = useRoute();
+const router = useRouter();
 const showCharacterSelector = ref(false);
+const showOptionsModal = ref(false);
+const showSkinChangerModal = ref(false);
+const audioPlayer = ref(null);
 
 const characters = [
-  { id: "knight", name: "Caballero", skins: ["blue", "green", "red", "black"] },
-  { id: "thief", name: "Ladrón", skins: ["blue", "green", "purple", "red"] },
-  { id: "wizard", name: "Mago", skins: ["blue", "green", "purple", "red"] },
+  { id: "knight", name: "Knight", skins: ["blue", "green", "red", "black"] },
+  { id: "thief", name: "Thief", skins: ["blue", "green", "purple", "red"] },
+  { id: "wizard", name: "Wizard", skins: ["blue", "green", "purple", "red"] },
 ];
 
 console.log("GameStore instance:", gameStore);
@@ -24,6 +31,52 @@ console.log("GameStore instance:", gameStore);
 const isGameOver = computed(() => gameStore.isGameOver);
 const gamePhase = computed(() => gameStore.gamePhase);
 const choiceDetails = computed(() => gameStore.choiceDetails);
+
+const currentMusicTrack = computed(() => {
+  const base = import.meta.env.BASE_URL;
+  const soundPath = `${base}assets/soundtrack/`;
+
+  if (gameStore.gamePhase === "game_won") {
+    return { src: `${soundPath}Fanfare.wav`, loop: false };
+  }
+  if (gameStore.isGameOver) {
+    return { src: `${soundPath}game_over.wav`, loop: false };
+  }
+  if (gameStore.playerStage === 5) {
+    return { src: `${soundPath}Motivational.wav`, loop: true };
+  }
+  if (gameStore.playerStage > 0) {
+    // any active stage
+    return { src: `${soundPath}Eardeer.wav`, loop: true };
+  }
+
+  return null; // No music if no state matches
+});
+
+watch(
+  currentMusicTrack,
+  (newTrack) => {
+    if (!audioPlayer.value) return;
+
+    // To prevent reloading the same track, we can check the base filename
+    const newSrcFilename = newTrack ? newTrack.src.split("/").pop() : null;
+    const currentSrcFilename = audioPlayer.value.src
+      ? audioPlayer.value.src.split("/").pop()
+      : null;
+
+    // Only change source if it's different, or if we need to replay a non-looping track
+    if (newSrcFilename !== currentSrcFilename || (newTrack && !newTrack.loop)) {
+      if (newTrack) {
+        audioPlayer.value.src = newTrack.src;
+        audioPlayer.value.loop = newTrack.loop;
+        audioPlayer.value.play().catch((e) => console.warn("Audio playback failed.", e));
+      } else {
+        audioPlayer.value.pause();
+      }
+    }
+  },
+  { immediate: true }
+);
 
 const imagePathsToPreload = [
   // Dados Normales
@@ -74,15 +127,22 @@ const dynamicPlayerImage = computed(() => {
 function getCharacterDisplayName(id) {
   switch (id) {
     case "knight":
-      return "Caballero";
-    case "rogue":
-      return "Ladrón";
+      return "Knight";
+    case "thief":
+      return "Thief";
     case "wizard":
-      return "Mago";
+      return "Wizard";
     default:
-      return "Personaje";
+      return "Character";
   }
 }
+
+const bossImageUrl = computed(() => {
+  if (gameStore.currentBoss && gameStore.currentBoss.image) {
+    return `${import.meta.env.BASE_URL}assets/images/bosses/${gameStore.currentBoss.image}`;
+  }
+  return ""; // Return empty string or a placeholder if no boss image
+});
 
 onMounted(async () => {
   preloadImages(imagePathsToPreload);
@@ -98,24 +158,12 @@ onMounted(async () => {
   }
 });
 
-function handleRollNormalDice() {
-  console.log("handleRollNormalDice called");
-  console.log("gamePhase:", gameStore.gamePhase);
-  console.log("isGameOver:", gameStore.isGameOver);
-  console.log("assetsLoaded:", gameStore.assetsLoaded);
-
-  if (
-    (gameStore.gamePhase === "rolling" || gameStore.gamePhase === "boss_encounter") &&
-    !gameStore.isGameOver &&
-    gameStore.assetsLoaded
-  ) {
-    console.log("Conditions met, calling rollDice(-1)");
-    // Use -1 to indicate normal dice roll (not a reserved die)
-    gameStore.rollDice(-1);
-  } else {
-    console.log("Conditions not met for rolling dice");
+onUnmounted(() => {
+  if (audioPlayer.value) {
+    audioPlayer.value.pause();
+    audioPlayer.value.src = "";
   }
-}
+});
 
 function handleChoice(option) {
   gameStore.playerMakesChoice(option);
@@ -124,74 +172,113 @@ function handleChoice(option) {
 function handleToggleSpeed() {
   gameStore.toggleAnimationSpeed();
 }
+
+function payBribe() {
+  gameStore.payBossBribe();
+}
+
+async function handleNewRun() {
+  showOptionsModal.value = false;
+  try {
+    const newGame = await gameStore.createGame();
+    if (newGame && newGame._id) {
+      router.push({ name: "Game", params: { sessionId: newGame._id } });
+      // We might need to force a reload or ensure the component re-initializes
+      window.location.reload();
+    }
+  } catch (error) {
+    console.error("Failed to start a new run:", error);
+  }
+}
+
+function handleMainMenu() {
+  showOptionsModal.value = false;
+  router.push({ name: "Home" });
+}
+
+function handleSkillToggle(isActive) {
+  gameStore.toggleSkill(isActive);
+}
+
+function handleSkillUse() {
+  // Only for Thief for now
+  gameStore.useSkill();
+}
+
+function openSkinChanger() {
+  showOptionsModal.value = false; // Close options modal
+  showSkinChangerModal.value = true;
+}
 </script>
 
 <template>
   <div class="game-view-container">
+    <audio ref="audioPlayer" style="display: none"></audio>
     <template v-if="gameStore.boardIsReady">
       <div class="main-game-area">
         <div class="left-panel-area">
           <div class="player-display-area">
-            <!-- Reemplaza tu botón actual  -->
-            <button class="change-hero-badge" @click="showCharacterSelector = true">
-              Cambiar héroe
-            </button>
-
             <img
               :src="dynamicPlayerImage"
-              :alt="`Personaje: ${gameStore.playerCharacter}`"
+              :alt="`Character: ${gameStore.playerCharacter}`"
               class="large-static-player-image"
             />
             <h3 class="player-name">
               {{ getCharacterDisplayName(gameStore.playerCharacter) }}
             </h3>
+            <SkillButton
+              :character="gameStore.playerCharacter"
+              :skillState="gameStore.skillState"
+              :gamePhase="gamePhase"
+              @toggle="handleSkillToggle"
+              @use="handleSkillUse"
+            />
           </div>
-          <GameInfo class="game-info-content" />
+          <GameInfo class="game-info-content" @open-options="showOptionsModal = true" />
         </div>
 
         <div class="game-board-container">
-          <GameBoard :player-image-url="dynamicPlayerImage" class="game-board-component" />
+          <GameBoard
+            :player-image-url="dynamicPlayerImage"
+            class="game-board-component"
+            @attack-boss="gameStore.rollDice(-1)"
+            @bribe-boss="payBribe"
+            @flee-minion="gameStore.fleeMinion"
+          />
         </div>
 
         <div class="right-action-panel">
           <ReservedDiceDisplay class="dice-reserve-component" />
+
           <div class="action-buttons-group">
-            <div class="normal-roll-button-container">
-              <button
-                @click="handleRollNormalDice"
-                :disabled="isGameOver || gameStore.isAnimating || gamePhase !== 'rolling'"
-                class="roll-button"
-              >
-                Lanzar dado
-              </button>
-            </div>
-            <div class="speed-control-container">
-              <button @click="handleToggleSpeed" class="speed-button">
-                Velocidad de juego: {{ gameStore.currentSpeedText }}
-              </button>
-            </div>
+            <!-- The roll and speed buttons are now removed from here -->
           </div>
         </div>
-        <CharacterSelectorModal
-          v-if="showCharacterSelector"
-          :model-value-character="gameStore.playerCharacter"
-          :model-value-skin="gameStore.playerSkin"
-          :characters="characters"
-          @update:character="(c) => (gameStore.playerCharacter = c)"
-          @update:skin="(s) => (gameStore.playerSkin = s)"
-          @confirm="showCharacterSelector = false"
-          @cancel="showCharacterSelector = false"
-        />
       </div>
 
-      <ChoiceModal
-        v-if="gamePhase === 'awaiting_choice' && choiceDetails"
-        :details="choiceDetails"
-        @player-choice="handleChoice"
+      <CharacterSelectorModal
+        v-if="showCharacterSelector"
+        v-model:character="gameStore.playerCharacter"
+        v-model:skin="gameStore.playerSkin"
+        :characters="characters"
+        @confirm="showCharacterSelector = false"
+        @cancel="showCharacterSelector = false"
       />
+      <OptionsModal
+        v-if="showOptionsModal"
+        @close="showOptionsModal = false"
+        @new-run="handleNewRun"
+        @main-menu="handleMainMenu"
+        @change-skin="openSkinChanger"
+      />
+      <ChangeSkinModal
+        v-if="showSkinChangerModal"
+        @confirm="showSkinChangerModal = false"
+        @cancel="showSkinChangerModal = false"
+      />
+      <ChoiceModal v-if="choiceDetails" :details="choiceDetails" @player-choice="handleChoice" />
       <SummaryModal v-if="gameStore.showSummaryModal" />
     </template>
-
     <div v-else class="loading-message">Loading game...</div>
   </div>
 </template>
@@ -228,7 +315,7 @@ function handleToggleSpeed() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 40px;
+  padding: 20px;
   border: 1px solid #b0c4de;
   background-color: #e6eef7;
   border-radius: 8px;
@@ -254,7 +341,7 @@ function handleToggleSpeed() {
   font-weight: bold;
   color: #2c3e50;
   margin-top: 5px;
-  margin-bottom: 0; /* Removed bottom margin for tighter look */
+  margin-bottom: 10px; /* Add space for skill button */
 }
 
 .game-info-content {
@@ -291,6 +378,7 @@ function handleToggleSpeed() {
   flex-direction: column;
   gap: 10px;
   width: 100%;
+  min-height: 80px; /* Add min-height to prevent layout shift */
 }
 
 .normal-roll-button-container,
@@ -345,30 +433,57 @@ function handleToggleSpeed() {
   position: relative;
 }
 
-/* botón «Cambiar héroe» centrado y con estilo pill */
-.change-hero-badge {
-  position: absolute;
-  top: 6px;
-  left: 50%;                /* centramos horizontalmente */
-  transform: translate(-50%, 0);
-  
-  padding: 4px 14px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  
-  background: #f0f8ff;      /* mismo fondo claro del panel */
-  color: #2c3e50;
-  border: 1px solid #b0c4de;
-  border-radius: 9999px;    /* pill */
-  
+.boss-encounter-panel {
+  padding: 15px;
+  border: 2px solid #c0392b; /* Red border for danger */
+  background-color: #2c3e50; /* Dark background */
+  color: white;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.boss-image {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+  margin: 10px auto;
+  border-radius: 50%;
+  border: 2px solid #ecf0f1;
+}
+
+.boss-name {
+  font-weight: bold;
+  font-size: 1.1em;
+  margin-bottom: 5px;
+}
+
+.boss-hp,
+.boss-rolls {
+  font-size: 0.9em;
+  margin-bottom: 10px;
+}
+
+.boss-attack-btn {
+  background-color: #e74c3c;
+}
+.boss-attack-btn:hover {
+  background-color: #c0392b;
+}
+
+.bribe-button {
+  width: 100%;
+  padding: 10px;
+  font-size: 0.8em;
+  font-weight: bold;
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0,0,0,.15);
-  transition: background-color .15s, transform .1s;
+  color: #2c3e50;
+  background-color: #f1c40f; /* Gold color */
+  border: none;
+  border-radius: 5px;
+  margin-top: 5px;
 }
-
-.change-hero-badge:hover {
-  background: #e6eef7;
-  transform: translate(-50%, -1px); /* solo levanta 1 px en hover */
+.bribe-button:hover {
+  background-color: #f39c12;
 }
-
 </style>

@@ -32,13 +32,11 @@ export const useGameStore = defineStore("game", () => {
   const boardIsReady = ref(false);
   const gameMessage = ref("");
   const playerCharacter = ref("knight"); // valor por defecto
-  const playerSkin = ref("blue");        // valor por defecto
-
+  const playerSkin = ref("blue"); // valor por defecto
 
   // Boss-related state
   const currentBoss = ref(null);
   const currentDiceThrows = ref([]);
-  const remainingBossRolls = ref(0);
   const bossLastRoll = ref(null);
   const currentBossHP = ref(null);
   const currentBossMaxHP = ref(null);
@@ -50,6 +48,7 @@ export const useGameStore = defineStore("game", () => {
   const perfectBossDefeats = ref(0);
   const bribesBosses = ref(0);
   const showSummaryModal = ref(false);
+  const skillState = ref({ isActive: false, isUsedInEncounter: false });
 
   // --- GETTERS ---
   // Keep only simple, purely display-related getters
@@ -79,16 +78,14 @@ export const useGameStore = defineStore("game", () => {
       boardIsReady.value = false;
       console.log("Pinia: Requesting new game from server…");
 
-      // ‼️ Construimos el body con el personaje/skin elegidos en el store
       const body = {
-        playerCharacter: playerCharacter.value, // “knight”, “rogue”, “wizard”, …
-        playerSkin: playerSkin.value,           // “blue”, “green”, “purple”, …
+        playerCharacter: playerCharacter.value,
+        playerSkin: playerSkin.value,
+        animationSpeedMultiplier: animationSpeedMultiplier.value,
       };
 
-      // Usa la misma instancia de axios (apiClient)
       const response = await apiClient.post("/api/game/start", body);
 
-      // Aplicamos todo el estado que devuelve el backend
       this.$patch(response.data);
 
       boardIsReady.value = true;
@@ -98,7 +95,6 @@ export const useGameStore = defineStore("game", () => {
       console.error("Pinia: Failed to create game", error);
     }
   }
-
 
   async function loadGame(sessionId) {
     try {
@@ -149,25 +145,74 @@ export const useGameStore = defineStore("game", () => {
     }
   }
 
-  // Example of a future action - this will be implemented when we add the roll endpoint
-  async function rollDice(reservedDieIndex = -1) {
-    console.log("rollDice called with reservedDieIndex:", reservedDieIndex);
-    console.log("_id.value:", _id.value);
+  // This is a UI-only action. It does NOT need to call the backend.
+  function toggleAnimationSpeed() {
+    if (animationSpeedMultiplier.value === 1) animationSpeedMultiplier.value = 2;
+    else if (animationSpeedMultiplier.value === 2) animationSpeedMultiplier.value = 0;
+    else animationSpeedMultiplier.value = 1;
 
-    if (!_id.value) return console.error("No active game session!");
-    isAnimating.value = true; // For UI feedback
+    gameMessage.value = `Animation speed: ${
+      animationSpeedMultiplier.value === 0
+        ? "Instant"
+        : animationSpeedMultiplier.value === 2
+        ? "Faster"
+        : "Normal"
+    }`;
+  }
+
+  // This is a helper for the animation UI
+  function getAnimationDelay(baseDuration) {
+    if (animationSpeedMultiplier.value === 0) return 0;
+    return baseDuration / animationSpeedMultiplier.value;
+  }
+
+  async function rollDice(reservedDieIndex = -1) {
+    if (!_id.value || isAnimating.value) return;
+    isAnimating.value = true;
     try {
-      console.log("Making API call to roll dice...");
       const response = await apiClient.post(`/api/game/${_id.value}/roll`, {
         reservedDieIndex,
       });
-      console.log("API response received:", response.data);
+
+      // --- THIS IS THE FIX for the dice animation ---
+      // Show the dice animation before patching the state
+      lastGeneralRoll.value = response.data.lastDiceRoll?.value;
+      showGeneralRoll.value = true;
+      setTimeout(() => {
+        showGeneralRoll.value = false;
+      }, 1000); // Hide after 1s
+      // Wait for the animation to feel right before updating the board
+      await new Promise((res) => setTimeout(res, getAnimationDelay(500)));
+      // Patch the state
       this.$patch(response.data);
-      console.log("State updated with $patch");
     } catch (error) {
       console.error("Pinia: Failed to roll dice", error);
     } finally {
       isAnimating.value = false;
+    }
+  }
+
+  async function toggleSkill(isActive) {
+    if (!_id.value) return;
+    try {
+      const response = await apiClient.post(`/api/game/${_id.value}/skill/toggle`, { isActive });
+      this.$patch(response.data);
+    } catch (error) {
+      console.error("Pinia: Failed to toggle skill", error);
+    }
+  }
+
+  async function useSkill(payload = {}) {
+    // Universal skill usage action
+    if (!_id.value || skillState.value.isUsedInEncounter) return;
+    try {
+      const response = await apiClient.post(`/api/game/${_id.value}/skill/use`, payload);
+      this.$patch(response.data);
+    } catch (error) {
+      console.error(`Pinia: Failed to use skill.`, error);
+      if (error.response?.data?.message) {
+        alert(error.response.data.message);
+      }
     }
   }
 
@@ -183,19 +228,22 @@ export const useGameStore = defineStore("game", () => {
     }
   }
 
-  // Simple UI actions that don't need backend logic
-  function toggleAnimationSpeed() {
-    if (animationSpeedMultiplier.value === 1) animationSpeedMultiplier.value = 2;
-    else if (animationSpeedMultiplier.value === 2) animationSpeedMultiplier.value = 0;
-    else animationSpeedMultiplier.value = 1;
-
-    gameMessage.value = `Animation speed: ${
-      animationSpeedMultiplier.value === 0
-        ? "Instant"
-        : animationSpeedMultiplier.value === 2
-        ? "Faster"
-        : "Normal"
-    }`;
+  async function payBossBribe() {
+    if (!_id.value || gamePhase.value !== "boss_encounter") return;
+    try {
+      const response = await apiClient.post(`/api/game/${_id.value}/bribe`);
+      if (response.data) {
+        this.$patch(response.data);
+      }
+    } catch (error) {
+      // The backend will send a 400 if not enough money, handle it gracefully
+      if (error.response && error.response.data.message) {
+        // You might want to show this message to the player in a more elegant way
+        alert(error.response.data.message);
+      } else {
+        console.error("Pinia: Failed to pay bribe", error);
+      }
+    }
   }
 
   function highlightSquareForDie(die) {
@@ -222,6 +270,19 @@ export const useGameStore = defineStore("game", () => {
 
   function clearHighlightedSquare() {
     highlightedTargetSquare.value = null;
+  }
+
+  async function fleeMinion() {
+    if (!_id.value || gamePhase.value !== "minion_encounter") return;
+    try {
+      const response = await apiClient.post(`/api/game/${_id.value}/flee`);
+      this.$patch(response.data);
+    } catch (error) {
+      console.error("Pinia: Failed to flee minion", error);
+      if (error.response?.data?.message) {
+        alert(error.response.data.message);
+      }
+    }
   }
 
   return {
@@ -254,7 +315,6 @@ export const useGameStore = defineStore("game", () => {
     gameMessage,
     currentBoss,
     currentDiceThrows,
-    remainingBossRolls,
     bossLastRoll,
     currentBossHP,
     currentBossMaxHP,
@@ -266,6 +326,7 @@ export const useGameStore = defineStore("game", () => {
     showSummaryModal,
     playerCharacter,
     playerSkin,
+    skillState,
 
     // Getters
     diceBagCapacityDisplay,
@@ -277,8 +338,13 @@ export const useGameStore = defineStore("game", () => {
     saveGame,
     rollDice,
     playerMakesChoice,
+    payBossBribe,
     toggleAnimationSpeed,
+    toggleSkill,
+    useSkill,
+    getAnimationDelay,
     highlightSquareForDie,
     clearHighlightedSquare,
+    fleeMinion,
   };
 });

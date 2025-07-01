@@ -1,57 +1,57 @@
 <script setup>
-import { ref } from 'vue'
-import api from '@/services/api'
+import { ref } from "vue";
+import api from "@/services/api";
 
-const form        = ref({ username: '', password: '' })
-const message     = ref('')
-const messageType = ref('')
+const form = ref({ username: "", password: "" });
+const message = ref("");
+const messageType = ref("");
 
-function showMessage (txt, isError = false) {
-  message.value     = txt
-  messageType.value = isError ? 'error' : 'success'
+function showMessage(txt, isError = false) {
+  message.value = txt;
+  messageType.value = isError ? "error" : "success";
 }
 
-async function register () {
-  const { username, password } = form.value
-  if (!username || !password) return showMessage('Todos los campos son obligatorios.', true)
+async function register() {
+  const { username, password } = form.value;
+  if (!username || !password) return showMessage("All fields are required.", true);
   try {
-    await api.post('/users/register', { username, password })
-    showMessage('Usuario registrado correctamente.')
+    await api.post("/users/register", { username, password });
+    showMessage("User registered successfully.");
   } catch (err) {
-    showMessage(err.response?.data?.message || 'Error al registrar.', true)
+    showMessage(err.response?.data?.message || "Error during registration.", true);
   }
 }
 
-async function login () {
-  const { username, password } = form.value
-  if (!username || !password) return showMessage('Todos los campos son obligatorios.', true)
+async function login() {
+  const { username, password } = form.value;
+  if (!username || !password) return showMessage("All fields are required.", true);
   try {
-    const { data } = await api.post('/users/login', { username, password })
-    localStorage.setItem('token', data.token)
-    showMessage('Login exitoso!')
+    const { data } = await api.post("/users/login", { username, password });
+    localStorage.setItem("token", data.token);
+    showMessage("Login successful!");
   } catch (err) {
-    showMessage(err.response?.data?.message || 'Error al ingresar.', true)
+    showMessage(err.response?.data?.message || "Error during login.", true);
   }
 }
 </script>
 
 <template>
   <div class="login-card">
-    <h2>Ingreso / Registro</h2>
+    <h2>Login / Register</h2>
 
     <div class="input-group">
-      <label>Usuario</label>
-      <input v-model="form.username" type="text" placeholder="Nombre de usuario" />
+      <label>Username</label>
+      <input v-model="form.username" type="text" placeholder="Username" />
     </div>
 
     <div class="input-group">
-      <label>Contraseña</label>
+      <label>Password</label>
       <input v-model="form.password" type="password" placeholder="••••••••" />
     </div>
 
     <div class="actions">
-      <button class="login"    @click="login">Login</button>
-      <button class="register" @click="register">Crear</button>
+      <button class="login" @click="login">Login</button>
+      <button class="register" @click="register">Create</button>
     </div>
 
     <div class="message" :class="messageType">{{ message }}</div>
@@ -65,7 +65,7 @@ async function login () {
   padding: 20px;
   background: #fff;
   border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   font-family: Arial, sans-serif;
 }
 .login-card h2 {
@@ -101,10 +101,10 @@ async function login () {
   cursor: pointer;
 }
 .actions .login {
-  background: #4CAF50;
+  background: #4caf50;
 }
 .actions .register {
-  background: #2196F3;
+  background: #2196f3;
 }
 .message {
   margin-top: 16px;

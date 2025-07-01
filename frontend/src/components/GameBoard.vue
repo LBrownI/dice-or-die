@@ -14,13 +14,15 @@ Interactions:
 - Assets: Loads boss images dynamically and the static player marker image.
 --->
 <script setup>
-import { ref, watch, computed } from "vue";
+import { ref, watch, computed, defineEmits } from "vue";
 import { useGameStore } from "../stores/game"; // Adjust path if needed
 import BoardSquare from "./BoardSquare.vue";
 
 const props = defineProps({
-  playerImageUrl: {type: String, required: true}
+  playerImageUrl: { type: String, required: true },
 });
+
+const emit = defineEmits(["attack-boss", "bribe-boss", "flee-minion"]);
 
 const justTookDamage = ref(false);
 
@@ -33,6 +35,20 @@ const playerPosition = computed(() => gameStore.playerPosition);
 const currentBoss = computed(() => gameStore.currentBoss);
 const currentBossHP = computed(() => gameStore.currentBossHP);
 const currentBossMaxHP = computed(() => gameStore.currentBossMaxHP);
+
+const currentMinionSquare = computed(() => {
+  if (gameStore.gamePhase !== "minion_encounter") return null;
+  return gameStore.boardSquares.find((sq) => sq.id === gameStore.playerPosition);
+});
+
+const minionImageUrl = computed(() => {
+  if (currentMinionSquare.value && currentMinionSquare.value.effectDetails?.image) {
+    return `${import.meta.env.BASE_URL}assets/images/minions/${
+      currentMinionSquare.value.effectDetails.image
+    }`;
+  }
+  return "";
+});
 
 watch(currentBossHP, (newVal, oldVal) => {
   if (oldVal != null && newVal < oldVal) {
@@ -167,13 +183,12 @@ const bossImageUrl = computed(() => {
         :style="getSquarePositionStyle(square.id, boardRows, boardCols)"
       />
       <img
-  v-if="boardSquares.length > 0"
-  :src="playerImageUrl"          
-  alt="Player"
-  class="static-player-marker"
-  :style="staticPlayerMarkerStyle"
-/>
-
+        v-if="boardSquares.length > 0"
+        :src="playerImageUrl"
+        alt="Player"
+        class="static-player-marker"
+        :style="staticPlayerMarkerStyle"
+      />
     </div>
 
     <div v-if="gameStore.showGeneralRollAnimation" class="general-die-result">
@@ -186,19 +201,31 @@ const bossImageUrl = computed(() => {
         <img v-if="bossImageUrl" :src="bossImageUrl" alt="Boss" class="boss-image" />
 
         <p class="boss-hp-text" :class="{ 'hp-damaged': justTookDamage }">
-          ❤️ Vida del jefe: {{ currentBossHP }} / {{ currentBossMaxHP }}
+          ❤️ Boss HP: {{ currentBossHP }} / {{ currentBossMaxHP }}
         </p>
 
-        <button class="pay-boss-button" @click="() => console.log('Pay boss clicked')">
-          💰 Pagar {{ gameStore.currentBoss?.bribeCost || "??" }} monedas para derrotar al jefe
+        <p class="boss-info-text">Use a die from your pouch to attack!</p>
+
+        <button class="pay-boss-button" @click="emit('bribe-boss')">
+          Bribe the boss ${{ gameStore.currentBoss?.bribeCost || "??" }}
         </button>
 
         <div v-if="gameStore.bossLastRoll !== null" class="boss-die-result">
           🎲 {{ gameStore.bossLastRoll }}
         </div>
-        <div class="boss-counters">
-          <p><strong>🎲 Dados restantes:</strong> {{ gameStore.remainingBossRolls }}</p>
-        </div>
+      </div>
+    </div>
+
+    <div
+      v-if="gameStore.gamePhase === 'minion_encounter' && currentMinionSquare"
+      class="minion-overlay"
+    >
+      <div class="minion-wrapper animated-boss">
+        <h2 class="minion-name">Minion Encounter!</h2>
+        <img v-if="minionImageUrl" :src="minionImageUrl" alt="Minion" class="minion-image" />
+        <p class="minion-hp-text">❤️ HP: {{ currentMinionSquare.effectDetails.hp }}</p>
+        <p class="minion-info">Use a die from your pouch to attack!</p>
+        <button class="flee-button" @click="emit('flee-minion')">🏃‍♂️ Flee (Lose Money)</button>
       </div>
     </div>
   </div>
@@ -325,7 +352,7 @@ const bossImageUrl = computed(() => {
 .pay-boss-button {
   background-color: #f3b73c;
   color: #000;
-  padding: 4px 6px;
+  padding: 8px 12px;
   font-size: 0.95rem;
   max-width: 240px;
   text-align: center;
@@ -371,5 +398,64 @@ const bossImageUrl = computed(() => {
   animation: flash-red 0.3s ease-in-out;
   transform: scale(1.05);
   text-shadow: 0 0 8px red;
+}
+
+.minion-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 40; /* Below boss overlay */
+}
+.minion-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  filter: drop-shadow(0 0 15px red);
+  color: white;
+  text-align: center;
+}
+.minion-image {
+  max-width: 50%;
+  max-height: 50%;
+  object-fit: contain;
+}
+.minion-name {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+.minion-hp-text {
+  font-size: 1.1rem;
+}
+.minion-info {
+  font-size: 0.9rem;
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: 5px 10px;
+  border-radius: 5px;
+}
+.flee-button {
+  margin-top: 10px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background-color: #f39c12;
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.flee-button:hover {
+  background-color: #e67e22;
+}
+.boss-info-text {
+  color: #eee;
+  font-style: italic;
+  font-size: 1rem;
 }
 </style>

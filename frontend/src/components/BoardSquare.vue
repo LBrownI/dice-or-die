@@ -35,9 +35,9 @@ const displayData = computed(() => {
   }
 
   // Determine display based on current dynamic effect (can override or add to base type)
-  if (sq.isTempBad) {
-    icons = ["💀"]; // Skull for temporary bad squares (traps), overrides other icons for clarity
-    text = `Trap! (-$${sq.effectDetails?.penalty || "?"})`; // Show penalty if available
+  if (sq.isTempBad && sq.currentEffectType === "minion_encounter") {
+    icons = ["👹"];
+    text = `Minion!`;
   } else {
     // If not a trap, check for other current effects
     switch (sq.currentEffectType) {
@@ -82,6 +82,7 @@ const displayData = computed(() => {
 // Computes dynamic CSS classes for the square based on its state
 const squareClasses = computed(() => ({
   "player-is-on-this-square": isPlayerCurrentlyOnThisSquare.value, // For highlighting the square
+  "minion-encounter": props.square.currentEffectType === "minion_encounter",
   "temp-bad": props.square.isTempBad,
   corner: props.square.baseType.startsWith("corner_"),
   "corner-br": props.square.baseType === "corner_br",
@@ -246,5 +247,15 @@ const squareClasses = computed(() => ({
 
 .board-square.active {
   border: 2px solid yellow;
+}
+
+.minion-encounter {
+  background-color: #a73737; /* Dark red for traps */
+  color: white;
+  border-color: darkred;
+}
+.minion-encounter .icon-display,
+.minion-encounter .effect-text {
+  color: white; /* Ensure text and icons are visible on dark background */
 }
 </style>
