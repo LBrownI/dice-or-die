@@ -2,95 +2,163 @@
 <script setup>
 import { useRouter } from "vue-router";
 import { useGameStore } from "../stores/game";
+import { ref, onMounted, onUnmounted } from "vue";
+import D20Die3D from "../components/D20Die3D.vue";
 
 const router = useRouter();
 const gameStore = useGameStore();
+const mainMenuAudio = ref(null);
 
 async function startNewGame() {
   try {
     const newGame = await gameStore.createGame();
     if (newGame && newGame._id) {
+      // Stop music when leaving menu
+      if (mainMenuAudio.value) mainMenuAudio.value.pause();
       router.push({ name: "Game", params: { sessionId: newGame._id } });
     }
   } catch (error) {
     console.error("Could not start a new game:", error);
   }
 }
+
+onMounted(() => {
+  if (mainMenuAudio.value) {
+    mainMenuAudio.value.volume = 0.7;
+    mainMenuAudio.value.play().catch(() => {});
+  }
+});
+
+onUnmounted(() => {
+  if (mainMenuAudio.value) mainMenuAudio.value.pause();
+});
 </script>
 
 <template>
-  <div class="home-container">
-    <h1>🎲 Dice or DIE ☠️</h1>
-    <nav class="home-nav">
-      <button class="nav-link" @click="startNewGame">Play</button>
-    </nav>
+  <div class="main-menu-bg">
+    <div class="main-menu-container">
+      <div class="main-menu-header">
+        <D20Die3D class="d20-side" />
+        <span class="main-menu-title">DICE OR DIE</span>
+      </div>
+      <div class="main-menu-buttons-row">
+        <router-link to="/login" class="menu-btn profile-btn">Profile</router-link>
+        <button class="menu-btn play-btn" @click="startNewGame">PLAY</button>
+        <button class="menu-btn options-btn" disabled>Options</button>
+        <button class="menu-btn collection-btn" disabled>Collection</button>
+      </div>
+      <!-- Hidden audio for soundtrack, only wav -->
+      <audio ref="mainMenuAudio" autoplay loop hidden>
+        <source src="/assets/soundtrack/main_menu.wav" type="audio/wav" />
+        Your browser does not support the audio element.
+      </audio>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.patch-notes {
-  position: absolute;
-  top: 30px;
-  right: 40px;
-  background: #fff;
-  border: 1px solid #3498db;
-  border-radius: 8px;
-  padding: 18px 22px;
-  width: 320px;
-  max-height: 340px;
-  overflow: auto;
-  box-shadow: 0 2px 12px rgba(44, 62, 80, 0.08);
-  z-index: 10;
-  font-size: 0.98em;
-  word-break: break-word;
+.main-menu-bg {
+  min-height: 100vh;
+  width: 100vw;
+  background: radial-gradient(circle at 60% 40%, #2e2e4d 0%, #b02a2a 100%);
+  /* Swirl effect: animated SVG or canvas could be added for more Balatro feel */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
 }
-.patch-notes h2 {
-  margin: 0 0 8px 0;
-  font-size: 1.15em;
-  color: #2980b9;
-}
-.patch-version {
-  margin-bottom: 10px;
-}
-.patch-version h3 {
-  margin: 0 0 4px 0;
-  font-size: 1em;
-  color: #2c3e50;
-}
-.patch-version ul {
-  margin: 0 0 0 16px;
-  padding: 0;
-  list-style: disc;
-}
-.home-container {
+.main-menu-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  min-height: 80vh;
-  text-align: center;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: rgba(30, 30, 40, 0.92);
+  border-radius: 18px;
+  box-shadow: 0 0 40px #000a, 0 0 0 4px #fff2 inset;
+  padding: 48px 36px 36px 36px;
+  min-width: 420px;
+  max-width: 95vw;
 }
-h1 {
-  color: #2c3e50;
-  margin-bottom: 30px;
-}
-.home-nav {
+.main-menu-header {
   display: flex;
-  gap: 20px;
-  margin-top: 10px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  margin-bottom: 32px;
 }
-.nav-link {
-  display: inline-block;
-  padding: 12px 25px;
-  background-color: #3498db;
-  color: white;
-  text-decoration: none;
-  border-radius: 5px;
-  font-size: 1.1em;
-  transition: background-color 0.3s ease;
+.d20-side {
+  width: 120px;
+  height: 120px;
+  flex-shrink: 0;
 }
-.nav-link:hover {
-  background-color: #2980b9;
+.main-menu-title {
+  font-family: "Press Start 2P", "VT323", "Segoe UI", monospace;
+  font-size: 2.6rem;
+  color: #fff;
+  letter-spacing: 0.12em;
+  text-shadow: 0 0 8px #000, 0 2px 0 #b02a2a, 0 0 24px #fff8;
+  filter: contrast(1.2) brightness(1.1);
+  display: block;
+  text-align: center;
+}
+.main-menu-buttons-row {
+  display: flex;
+  flex-direction: row;
+  gap: 24px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-top: 18px;
+  margin-bottom: 10px;
+}
+.menu-btn {
+  font-family: "Press Start 2P", "VT323", "Segoe UI", monospace;
+  font-size: 1.1rem;
+  padding: 12px 0;
+  width: 170px;
+  border: none;
+  border-radius: 10px;
+  background: #222a;
+  color: #fff;
+  box-shadow: 0 2px 8px #0008;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  outline: 2px solid #fff2;
+  text-shadow: 0 1px 0 #000, 0 0 8px #fff8;
+}
+.menu-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.play-btn {
+  font-size: 1.6rem;
+  font-weight: bold;
+  background: linear-gradient(90deg, #f7b42c 0%, #fc575e 100%);
+  color: #fff;
+  box-shadow: 0 4px 24px #fc575e88, 0 0 0 4px #fff4 inset;
+  text-shadow: 0 2px 0 #b02a2a, 0 0 16px #fff8;
+  letter-spacing: 0.08em;
+  transform: scale(1.08);
+}
+.play-btn:hover {
+  background: linear-gradient(90deg, #fc575e 0%, #f7b42c 100%);
+  transform: scale(1.12);
+}
+.profile-btn {
+  background: #2e2e4d;
+  color: #fff;
+  border: 2px solid #fff2;
+}
+.options-btn,
+.collection-btn {
+  background: #444a;
+  color: #fff;
+  border: 2px solid #fff2;
+}
+.menu-btn:not(:disabled):hover {
+  background: #fff2;
+  color: #fc575e;
+  transform: scale(1.03);
 }
 </style>

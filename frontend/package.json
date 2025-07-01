@@ -15,8 +15,10 @@
   },
   "dependencies": {
     "axios": "^1.10.0",
+    "cannon-es": "^0.20.0",
     "package": "file:",
     "pinia": "^3.0.1",
+    "three": "^0.178.0",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0"
   },

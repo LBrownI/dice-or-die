@@ -11,12 +11,18 @@ importers:
       axios:
         specifier: ^1.10.0
         version: 1.10.0
+      cannon-es:
+        specifier: ^0.20.0
+        version: 0.20.0
       package:
         specifier: 'file:'
         version: 'file:'
       pinia:
         specifier: ^3.0.1
         version: 3.0.2(vue@3.5.13)
+      three:
+        specifier: ^0.178.0
+        version: 0.178.0
       vue:
         specifier: ^3.5.13
         version: 3.5.13
@@ -728,6 +734,9 @@ packages:
 
   caniuse-lite@1.0.30001716:
     resolution: {integrity: sha512-49/c1+x3Kwz7ZIWt+4DvK3aMJy9oYXXG6/97JKsnjdCk/6n9vVyWL8NAwVt95Lwt9eigI10Hl782kDfZUUlRXw==}
+
+  cannon-es@0.20.0:
+    resolution: {integrity: sha512-eZhWTZIkFOnMAJOgfXJa9+b3kVlvG+FX4mdkpePev/w/rP5V8NRquGyEozcjPfEoXUlb+p7d9SUcmDSn14prOA==}
 
   chai@5.2.0:
     resolution: {integrity: sha512-mCuXncKXk5iCLhfhwTc0izo0gtEmpz5CtG2y8GiOINBlMVS6v8TMRc5TaLWKS6692m9+dVVfzgeVxR5UxWHTYw==}
@@ -1548,6 +1557,9 @@ packages:
   supports-color@7.2.0:
     resolution: {integrity: sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw==}
     engines: {node: '>=8'}
+
+  three@0.178.0:
+    resolution: {integrity: sha512-ybFIB0+x8mz0wnZgSGy2MO/WCO6xZhQSZnmfytSPyNpM0sBafGRVhdaj+erYh5U+RhQOAg/eXqw5uVDiM2BjhQ==}
 
   tinybench@2.9.0:
     resolution: {integrity: sha512-0+DUvqWMValLmha6lr4kD8iAMK1HzV0/aKnCtWb9v9641TnP/MFb7Pc2bxoxQjTXAErryXVgUOfv2YqNllqGeg==}
@@ -2463,6 +2475,8 @@ snapshots:
 
   caniuse-lite@1.0.30001716: {}
 
+  cannon-es@0.20.0: {}
+
   chai@5.2.0:
     dependencies:
       assertion-error: 2.0.1
@@ -3068,6 +3082,7 @@ snapshots:
     dependencies:
       axios: 1.10.0
       pinia: 3.0.2(vue@3.5.13)
+      three: 0.178.0
       vue: 3.5.13
       vue-router: 4.5.1(vue@3.5.13)
     transitivePeerDependencies:
@@ -3288,6 +3303,8 @@ snapshots:
   supports-color@7.2.0:
     dependencies:
       has-flag: 4.0.0
+
+  three@0.178.0: {}
 
   tinybench@2.9.0: {}
 
