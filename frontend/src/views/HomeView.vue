@@ -241,4 +241,10 @@ onUnmounted(() => {
   color: #fc575e;
   transform: scale(1.03);
 }
+
+.profile-btn {
+  background: rgba(255, 83, 83, 0.333);
+  color: #fff;
+  text-shadow: 0 1px 0 #000, 0 0 8px #fff8;
+}
 </style>
