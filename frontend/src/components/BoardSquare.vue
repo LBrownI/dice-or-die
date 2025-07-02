@@ -7,6 +7,7 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+  animateUpdate: Boolean,
 });
 
 const gameStore = useGameStore();
@@ -102,8 +103,10 @@ const squareClasses = computed(() => ({
       square.baseType,
       square.currentEffectType,
       squareClasses,
-      { highlighted: isHighlighted, active: isPlayerCurrentlyOnThisSquare },
-    ]"
+      { highlighted: isHighlighted, active: isPlayerCurrentlyOnThisSquare,
+        'pulse-on-update': animateUpdate   
+      }
+      ]"
   >
     <div class="square-id-container">
       <span class="square-id">{{ square.id }}</span>
@@ -135,6 +138,16 @@ const squareClasses = computed(() => ({
   text-align: center;
   min-height: 55px; /* Ensure consistent height for grid alignment */
   z-index: 0;
+  transition: background-color 0.35s ease, border-color 0.35s ease;
+}
+
+@keyframes refreshPulse {
+  0%   { filter: brightness(1.6); }
+  100% { filter: none; }
+}
+
+.pulse-on-update {
+  animation: refreshPulse 0.4s ease-out;
 }
 
 /* Highlight for the square the player is currently on */
