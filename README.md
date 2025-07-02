@@ -113,9 +113,10 @@ cd frontend
 pnpm test
 ```
 ## REFERENCES
-* [3D DICE](https://github.com/uuuulala/Threejs-rolling-dice-tutorial)
-* [3D DICE](https://github.com/byWulf/threejs-dice)
-* [3D DICE](https://jsfiddle.net/prisoner849/2wrmyatL/)
+* [uuuulala - Threejs Rolling Dice](https://github.com/uuuulala/Threejs-rolling-dice-tutorial)
+* [byWulf - Threejs DICE](https://github.com/byWulf/threejs-dice)
+* [Threejs D20 Mesh](https://jsfiddle.net/prisoner849/2wrmyatL/)
+
 
 ## 👥 Authors
 
