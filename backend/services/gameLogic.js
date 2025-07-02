@@ -454,6 +454,7 @@ function getRandomDiePool() {
     { type: "20" },
     { type: "Fixed", value: 1 },
     { type: "Fixed", value: 6 },
+    {type: "Midas"},
   ];
 }
 
@@ -512,6 +513,18 @@ function handlePlayerTurn(gameState, reservedDieIndex, user) {
     case "Reverse Random":
       steps = -getRandomInt(1, 6);
       break;
+
+    // 2) Midas Die ─ gana oro, no te mueves
+    case "Midas": {
+      const rolled = getRandomInt(1, 20);     // D20 clásico
+      const goldEarned = rolled * gameState.playerStage;
+      gameState.playerMoney += goldEarned;
+
+      steps = 0;                              // Sin desplazamiento
+      gameState.lastDiceRoll = rolled;        // Guarda el valor por si luego usan Echo
+      break;
+    }
+
     default:
       steps = getRandomInt(1, 6);
       break;
@@ -1080,6 +1093,8 @@ function handleThiefSkill(gameState) {
       { type: "Reverse Fixed", value: getRandomInt(2, 6) },
       { type: "Fixed", value: 1 },
       { type: "Reverse Random" },
+      { type: "Midas" },
+      
     ];
     const advancedDicePool = [...dicePool, { type: "20" }];
 
@@ -1163,6 +1178,7 @@ function handleThiefSkill(gameState) {
       { type: "Reverse Fixed", value: 6 },
       { type: "Fixed", value: 6 },
       { type: "20" },
+      { type: "Midas"},
     ],
   };
 
