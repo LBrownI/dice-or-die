@@ -1,108 +1,121 @@
+
 # 🎲 Dice or Die
 
-Un juego de mesa digital donde debes avanzar por el tablero, recolectar dados especiales y enfrentarte a jefes. ¿Usarás la fuerza o el soborno para vencer?
+A digital board game where you advance across the board, collect special dice, and face powerful bosses. Will you use force or bribery to achieve victory?
 
-## 📝 Descripción
+## 📝 Description
 
-Dice or Die es un juego de mesa por turnos donde el jugador debe:
+Dice or Die is a turn-based board game where the player must:
 
-- Avanzar por el tablero usando dados
-- Recolectar dados especiales con diferentes efectos
-- Ganar dinero en casillas especiales
-- Enfrentarse a jefes al final de cada etapa
-- Decidir entre derrotar a los jefes en combate o sobornarlos
+  * Advance across the board using dice.
+  * Collect special dice with different effects.
+  * Earn money on special squares.
+  * Confront bosses at the end of each stage.
+  * Decide between defeating bosses in combat or bribing them.
 
-## 🚀 Tecnologías Utilizadas
+## 🚀 Technologies Used
 
-- Vue.js 3
-- Pinia (manejo de estado)
-- Vite
-- Docker
-- GitHub Actions (CI/CD)
-- Vitest (Testing)
-- Eslint (Linter)
+  * **Frontend:** Vue.js 3, Pinia (State Management), Vite
+  * **Backend:** Express.js, Node.js
+  * **Database:** MongoDB
+  * **Containerization:** Docker & Docker Compose
+  * **CI/CD:** GitHub Actions
+  * **Testing:** Vitest
+  * **Linter:** Eslint
 
-## 🛠️ Instalación y Ejecución Local
+## 🛠️ Installation and Local Execution
 
-### Prerrequisitos
+The project is divided into a frontend and a backend. You will need to run both simultaneously.
 
-- Node.js v20 o superior
-- pnpm (recomendado) o npm
+### Prerequisites
 
-### Pasos de Instalación
+  * Node.js v20 or superior
+  * pnpm (recommended) or npm
+  * A local instance of MongoDB running, or a connection string to a cloud database.
 
-1. Clonar el repositorio:
+### Backend Setup
 
-```bash
-git clone https://github.com/Dantexito/Solemne2_AppWeb.git
-cd Solemne2_AppWeb
-```
+1.  Navigate to the backend directory:
+    ```bash
+    cd backend
+    ```
+2.  Install backend dependencies:
+    ```bash
+    pnpm install
+    ```
+3.  Create a `.env` file in the `/backend` directory and add your MongoDB connection string:
+    ```
+    MONGODB_URI=your_mongodb_connection_string
+    ```
+4.  Run the backend server:
+    ```bash
+    pnpm start
+    ```
+    The API will be running on `http://localhost:3000`.
 
-2. Instalar dependencias:
+### Frontend Setup
 
-```bash
-pnpm install
-```
+1.  From the project root, navigate to the frontend directory:
+    ```bash
+    cd frontend
+    ```
+2.  Install frontend dependencies:
+    ```bash
+    pnpm install
+    ```
+3.  Create a `.env` file in the `/frontend` directory to point to your local backend:
+    ```
+    VITE_API_BASE_URL=http://localhost:3000
+    ```
+4.  Run the frontend in development mode:
+    ```bash
+    pnpm dev
+    ```
+    The application will be available at `http://localhost:8080` (or another port if 8080 is busy).
 
-3. Ejecutar en modo desarrollo:
+## 🐳 Execution with Docker (Recommended)
 
-```bash
-pnpm dev
-```
+The easiest way to run the entire application (frontend, backend, and database) is with Docker Compose.
 
-4. Ejecutar pruebas:
+### Prerequisites
 
-```bash
-pnpm test
-```
+  * Docker and Docker Compose installed.
 
-5. Construir para producción:
+### Steps
 
-```bash
-pnpm build
-```
+1.  From the project root directory, build and run all the services in the background:
 
-## 🐳 Ejecución con Docker
+    ```bash
+    docker-compose up --build -d
+    ```
 
-### Usando Docker Hub
+2.  The application will be available at **[http://localhost:8080](https://www.google.com/search?q=http://localhost:8080)**.
 
-```bash
-docker pull lbrowni/dice_or_die:latest
-docker run -p 8080:80 lbrowni/dice_or_die:latest
-```
+3.  To stop all services:
 
-### Construcción Local
-
-1. Construir la imagen:
-
-```bash
-docker build -t dice_or_die .
-```
-
-2. Ejecutar el contenedor:
-
-```bash
-docker run -p 8080:80 dice_or_die
-```
+    ```bash
+    docker-compose down
+    ```
 
 ## 🔗 Enlaces
 
-- [Docker Hub](https://hub.docker.com/r/lbrowni/dice_or_die)
-- [GitHub Repository](https://github.com/LBrownI/dice-or-die)
+  * [GitHub Repository](https://github.com/LBrownI/dice-or-die)
 
 ## ✅ Tests
 
-El proyecto incluye pruebas unitarias usando Vitest. Para ejecutar las pruebas:
+The project includes unit tests for the frontend using Vitest.
 
 ```bash
-# Ejecutar pruebas
+# Navigate to the frontend directory
+cd frontend
+
+# Run tests
 pnpm test
 ```
 
-## 👥 Autores
+## 👥 Authors
 
-- Nombre: Lucas Brown Ibieta
-- GitHub: [@LBrownI](https://github.com/LBrownI)
-
-- Nombre: Dante Quezada Poblete
-- GitHub: [@Dantexito](https://github.com/Dantexito)
+  * **Lucas Brown Ibieta**
+      * GitHub: [@LBrownI](https://github.com/LBrownI)
+  * **Dante Quezada Poblete**
+      * GitHub: [@Dantexito](https://github.com/Dantexito)
