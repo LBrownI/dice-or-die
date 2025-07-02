@@ -112,6 +112,10 @@ cd frontend
 # Run tests
 pnpm test
 ```
+## REFERENCES
+* [3D DICE](https://github.com/uuuulala/Threejs-rolling-dice-tutorial)
+* [3D DICE](https://github.com/byWulf/threejs-dice)
+* [3D DICE](https://jsfiddle.net/prisoner849/2wrmyatL/)
 
 ## 👥 Authors
 
