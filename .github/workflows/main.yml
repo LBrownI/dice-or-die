@@ -1,0 +1,78 @@
+name: CI/CD - Test, Build, and Push
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  test:
+    name: Run Tests and Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - name: Setup Node.js v20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm" # Use pnpm for caching
+
+      - name: Install Frontend Dependencies
+        run: cd frontend && pnpm install --frozen-lockfile
+
+      - name: Run Frontend Lint Check
+        run: cd frontend && pnpm lint
+
+      - name: Run Frontend Unit Tests
+        run: cd frontend && pnpm test:run
+
+      # --- Placeholder for Backend Tests ---
+      # You can add backend tests here once they are set up
+      # - name: Install Backend Dependencies
+      #   run: cd backend && pnpm install --frozen-lockfile
+      # - name: Run Backend Tests
+      #   run: cd backend && pnpm test
+
+  build-and-push:
+    name: Build and Push to Docker Hub
+    runs-on: ubuntu-latest
+    needs: test # This job depends on the 'test' job passing
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Frontend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/dice-or-die-client:latest
+
+      - name: Build and push Backend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/dice-or-die-api:latest
