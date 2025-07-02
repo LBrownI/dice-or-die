@@ -40,6 +40,8 @@ const imagePathsToPreload = [
 
   // Dados Especiales
   `${import.meta.env.BASE_URL}assets/images/dice/die_d20.png`,
+  `${import.meta.env.BASE_URL}assets/images/dice/die_midas.png`,
+  
 
   // Dados Reversa
   `${import.meta.env.BASE_URL}assets/images/dice/die_d6_reverse.png`,

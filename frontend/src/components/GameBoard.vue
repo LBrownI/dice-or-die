@@ -35,6 +35,15 @@ const playerPosition = computed(() => gameStore.playerPosition);
 const currentBoss = computed(() => gameStore.currentBoss);
 const currentBossHP = computed(() => gameStore.currentBossHP);
 const currentBossMaxHP = computed(() => gameStore.currentBossMaxHP);
+const playerLap = computed(() => gameStore.playerLap);
+
+const boardUpdateFlag = ref(false);
+
+watch(playerLap, () => {
+  boardUpdateFlag.value = true;
+  setTimeout(() => (boardUpdateFlag.value = false), 400);   // dura lo mismo que la animación
+});
+
 
 const currentMinionSquare = computed(() => {
   if (gameStore.gamePhase !== "minion_encounter") return null;
@@ -176,12 +185,16 @@ const bossImageUrl = computed(() => {
         height: `${boardRows * 60}px`,
       }"
     >
-      <BoardSquare
-        v-for="square in boardSquares"
-        :key="square.id"
-        :square="square"
-        :style="getSquarePositionStyle(square.id, boardRows, boardCols)"
-      />
+      <transition-group name="square-fade" tag="div" class="grid-content">
+        <BoardSquare
+          v-for="square in boardSquares"
+          :key="`${square.id}-${playerLap}`"
+          :square="square"
+          :style="getSquarePositionStyle(square.id, boardRows, boardCols)"
+          :animate-update="boardUpdateFlag"
+        />
+      </transition-group>
+
       <img
         v-if="boardSquares.length > 0"
         :src="playerImageUrl"
@@ -239,6 +252,10 @@ const bossImageUrl = computed(() => {
 .game-board-wrapper {
   position: relative; /* For positioning the boss overlay */
   display: inline-block; /* So it only takes the size of its content */
+}
+
+.grid-content {
+  display: contents; /* Allows BoardSquare to use grid layout */
 }
 
 .game-board-perimeter {

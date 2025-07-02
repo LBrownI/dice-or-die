@@ -34,6 +34,10 @@ function makeChoice(option) {
               :is-last-roll="false"
               class="compact-die-in-choice"
             />
+            <span
+              v-if="option.visual?.type === 'emoji'"
+              class="emoji-icon"
+            >{{ option.visual.emoji }}</span>
           </div>
           <span class="option-text">{{ option.text }}</span>
         </button>
@@ -80,26 +84,30 @@ h4 {
 }
 .choice-button {
   display: flex;
-  flex-direction: column; /* Icon above text for clarity */
+  flex-direction: row;                 /* icono y texto en línea */
   align-items: center;
   justify-content: center;
-  padding: 12px 10px; /* Adjusted padding */
-  background-color: #6dbf6d; /* Softer green */
+  gap: 10px;                           /* separación icono-texto */
+  padding: 16px 18px;                  /* botones más altos/anchos */
+  background-color: #6dbf6d;
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.1s ease;
-  min-height: 75px; /* Ensure consistent button height */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: background-color .2s ease, transform .1s ease;
+  min-height: 90px;                    /* altura mínima mayor */
+  font-size: 1rem;                     /* texto más grande */
+  box-shadow: 0 3px 6px rgba(0,0,0,.15);
 }
 .choice-button:hover {
-  background-color: #5aa85a;
+  background-color: #5aa85a; 
   transform: translateY(-1px);
 }
+
 .choice-button:active {
-  transform: translateY(0px);
+  transform: translateY(0);
 }
+
 .option-visuals {
   margin-bottom: 6px;
   min-height: 32px; /* Space for die image or emoji */
@@ -108,11 +116,11 @@ h4 {
   justify-content: center;
 }
 .emoji-icon {
-  font-size: 28px; /* Larger emoji */
+  font-size: 40px; /* Larger emoji */
 }
 .option-text {
   font-size: 0.9em;
-  font-weight: 500;
+  font-weight: 600;
   color: white;
 }
 
@@ -127,11 +135,10 @@ h4 {
 }
 .choice-button :deep(.compact-die-in-choice img),
 .choice-button :deep(.compact-die-in-choice .fallback-text) {
-  width: 30px;
-  height: 30px;
-  line-height: 30px;
-  margin-bottom: 0; /* No extra margin */
+  width: 38px;
+  height: 38px;
 }
+
 /* Hide the label from SingleDieDisplay as the button's option.text already covers it */
 .choice-button :deep(.compact-die-in-choice .die-label) {
   display: none;

@@ -7,6 +7,7 @@ const DICE_TYPES = {
   D20: "20",
   REVERSE_FIXED: "Reverse Fixed",
   REVERSE_RANDOM: "Reverse Random",
+  MIDAS: "Midas",
 };
 
 /**
@@ -43,6 +44,8 @@ export function generateDieImageFilename(die, isFromLastRoll = false) {
       return `die_fixed_reverse_${value}.png`;
     case DICE_TYPES.REVERSE_RANDOM:
       return "die_d6_reverse.png";
+    case DICE_TYPES.MIDAS:
+      return "die_midas.png";
     default:
       console.warn("Unknown die type for image:", type);
       return null;
