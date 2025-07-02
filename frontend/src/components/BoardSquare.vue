@@ -25,56 +25,50 @@ const displayData = computed(() => {
   let icons = [];
   let text = "";
 
-  // Determine display based on base type (permanent features of the square)
+  // --- BASE TYPE (bordes y salida) ---
   if (sq.baseType === "start") {
-    icons.push("🏁"); // Start flag emoji
+    icons.push("🏁");             // Salida
   } else if (sq.baseType === "corner_br") {
-    icons.push("☣️"); // Biohazard for the bad bottom-right corner
-    text = "-$20"; // Text indicating the penalty
+    icons.push("☣️");            // Esquina castigo
+    text = "-$20";
+  } else if (sq.baseType === "corner_bl" || sq.baseType === "corner_tr") {
+    icons.push("🏪");            // Tienda en BL y TR
+    text = "Shop";
   } else if (sq.baseType.startsWith("corner_")) {
-    icons.push("⭐"); // Star for other generic corners
+    icons.push("⭐");            // Otras esquinas (si las hubiera)
   }
 
-  // Determine display based on current dynamic effect (can override or add to base type)
+  // --- EFFECTOS DINÁMICOS ---
   if (sq.isTempBad && sq.currentEffectType === "minion_encounter") {
     icons = ["👹"];
-    text = `Minion!`;
+    text = "Minion!";
   } else {
-    // If not a trap, check for other current effects
     switch (sq.currentEffectType) {
       case "huge_money":
-        icons = ["💰"]; // Money bag for huge money
+        icons = ["💰"];
         text = `+$${sq.effectDetails?.amount || "?"}`;
         break;
       case "choice_dice_money":
-        icons = ["💰", "🎲"]; // Money bag and dice for this choice
+        icons = ["💰", "🎲"];
         text = "Choice!";
         break;
       case "choice_pick_die":
-        icons = ["🎲"]; // Gift box and dice for picking a die
+        icons = ["🎲"];
         text = "Get Die!";
         break;
       case "normal_money":
-        // Add money icon only if it's not a corner that already has an icon
-        if (!sq.baseType.startsWith("corner_")) {
-          icons.push("🪙"); // Coin emoji for normal money squares
-        }
-        text = `+$${sq.effectDetails?.amount || "?"}`; // Display the pre-set money amount
+        if (!sq.baseType.startsWith("corner_")) icons.push("🪙");
+        text = `+$${sq.effectDetails?.amount || "?"}`;
         break;
-      case "none": // No specific dynamic effect
-        if (sq.baseType === "normal" && icons.length === 0) {
-          // If it's a normal square with no other icon and no dynamic effect,
-          // it's currently a blank/neutral square.
-          text = ""; // No text, or could be a placeholder like "Safe"
-        }
+      case "none":
+        if (sq.baseType === "normal" && icons.length === 0) text = "";
         break;
     }
   }
 
-  // If no icons were set by dynamic effects or specific base types,
-  // and it's a normal square, give it a default "empty" icon.
+  // Icono por defecto para casilla normal vacía
   if (icons.length === 0 && sq.baseType === "normal" && sq.currentEffectType === "none") {
-    icons.push("▫️"); // Simple dot or empty square indicator
+    icons.push("▫️");
   }
 
   return { icons, text };

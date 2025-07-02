@@ -133,6 +133,29 @@ const STAGE_CONFIGS = {
 const MAX_RESERVED_DICE = 15;
 const HUGE_MONEY_AMOUNT_BASE = 10;
 
+/* ========  SHOP CONFIG  ======== */
+const SHOP_BASE_PRICE = 10; // precio base (se multiplica por stage y, opcionalmente, por el value del dado)
+
+/**
+ * Devuelve un inventario de 3-4 dados aleatorios con su costo
+ * @param {object} gameState El estado actual de la partida
+ * @returns {Array<{die: object, cost: number}>}
+ */
+function getShopInventory(gameState) {
+  const pool = getRandomDiePool();
+  shuffleArray(pool);
+  const howMany = getRandomInt(3, 4);
+
+  return pool.slice(0, howMany).map((die) => {
+    // Si el dado tiene .value (Fixed / Reverse Fixed) lo usamos para hacer el precio un poco más caro
+    const valueFactor = die.value ? die.value : 1;
+    const cost = Math.floor(
+      SHOP_BASE_PRICE * gameState.playerStage * valueFactor
+    );
+    return { die, cost };
+  });
+}
+
 // --- Helper Functions ---
 function getRandomInt(min, max) {
   min = Math.ceil(min);
@@ -730,6 +753,26 @@ function handlePlayerTurn(gameState, reservedDieIndex, user) {
   if (landedSquare) {
     let landedOnChoiceSquare = false;
 
+  /* ---------- TIENDA EN ESQUINAS ---------- */
+  if (["corner_bl", "corner_tr"].includes(landedSquare.baseType)) {
+    gameState.gamePhase = "awaiting_choice";
+
+    // Paso 1 : preguntar si quiere entrar
+    gameState.choiceDetails = {
+      type: "shop_confirm",
+      message: "You found a shop. Enter?",
+      options: [
+        { text: "Yes", action: "open_shop", value: null, visual: { type: "money" } },
+        { text: "No", action: "skip_shop", value: null, visual: { type: "emoji", emoji: "🏃‍♂️" } },
+
+      ],
+    };
+
+    gameState.gameMessage = "A mysterious merchant beckons…";
+    return { updatedState: gameState, updatedUser: user, movementPath };
+  }
+
+
     switch (landedSquare.currentEffectType) {
       /* --- DINERO --- */
       case "huge_money": {
@@ -870,6 +913,59 @@ function handlePlayerChoice(gameState, chosenOption) {
         gameState.gameMessage = "Your dice pouch is full.";
       }
       break;
+    }
+    case "open_shop": {
+      // Genera el inventario real y permanece en awaiting_choice
+      const inventory = getShopInventory(gameState);
+      const inventoryOptions = inventory.map(item => ({
+        text: `${item.die.type}${item.die.value ? ` (${item.die.value})` : ""}  –  $${item.cost}`,
+        action: "buy_die",
+        value: item,
+        visual: { type: "die", dieData: item.die },
+      }));
+
+      // Opción para salir
+      inventoryOptions.push({
+        text: "Leave shop",
+        action: "skip_shop",
+        value: null,
+        visual: { type: "emoji", emoji: "🏃‍♂️" },
+      });
+
+      gameState.choiceDetails = {
+        type: "shop",
+        message: "Dice Shop – choose an item:",
+        options: inventoryOptions,
+      };
+      gameState.gameMessage = "Welcome to the shop!";
+      return gameState;               // 👈 seguimos en la tienda
+    }
+
+    case "skip_shop": {
+      // Sale sin comprar nada
+      gameState.gameMessage = "You ignored the shop.";
+      break;                          // deja que el flujo normal continúe
+    }
+
+    case "buy_die": {
+      const { die, cost } = chosenOption.value;
+
+      if (gameState.playerMoney < cost) {
+        gameState.gameMessage = "Not enough coins!";
+        return gameState;             // sigue dentro de la tienda, no cierra modal
+      }
+
+      gameState.playerMoney -= cost;
+
+      if (gameState.reservedDice.length < gameState.maxDiceInBag) {
+        gameState.reservedDice.push(die);
+        gameState.diceObtained = (gameState.diceObtained || 0) + 1;
+        gameState.gameMessage = `Bought a ${die.type} die for $${cost}!`;
+      } else {
+        gameState.playerMoney += cost;   // reembolso
+        gameState.gameMessage = "Pouch full – purchase cancelled.";
+      }
+      break;  // después cerramos la tienda en las líneas que ya existen
     }
     default:
       throw new Error("Unknown choice action.");
