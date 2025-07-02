@@ -69,9 +69,20 @@ onUnmounted(() => {
         <div class="main-buttons">
           <button class="menu-btn play-btn" @click="showCharacterSelector = true">PLAY</button>
         </div>
+        <!-- SIDE BUTTONS -->
         <div class="side-buttons">
-          <button class="menu-btn profile-btn" @click="showProfileModal = true">Profile</button>
-          <button class="menu-btn options-btn" @click="showOptionsMenu = true">Options</button>
+          <!-- ① Único botón de perfil -->
+          <button
+            class="menu-btn profile-btn"
+            @click="showProfileModal = true"
+          >
+            Profile: {{ profileButtonText }}
+          </button>
+
+          <!-- ② Los demás botones siguen igual -->
+          <button class="menu-btn options-btn" @click="showOptionsMenu = true">
+            Options
+          </button>
           <button
             class="menu-btn collection-btn"
             :disabled="!authStore.isAuthenticated"
@@ -79,9 +90,6 @@ onUnmounted(() => {
           >
             Collection
           </button>
-        </div>
-        <div class="profile-status-display" @click="showProfileModal = true">
-          {{ profileButtonText }}
         </div>
       </div>
       <!-- Hidden audio for soundtrack, only wav -->
@@ -162,16 +170,17 @@ onUnmounted(() => {
   color: #e74c3c;
   text-shadow: 0 0 8px #000, 0 2px 0 #b02a2a, 0 0 24px #e74c3c;
 }
+
 .main-menu-buttons-grid {
   display: grid;
-  grid-template-areas:
-    "main side"
-    "status status";
+  /* antes: "main side" / "status status" */
+  grid-template-areas: "main side";
   grid-template-columns: 2fr 1fr;
   gap: 12px;
   width: 100%;
   align-items: center;
 }
+
 .main-buttons {
   grid-area: main;
   display: flex;
