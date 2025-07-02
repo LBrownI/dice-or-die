@@ -671,10 +671,16 @@ function handlePlayerTurn(gameState, reservedDieIndex, user) {
       // Minion survived, penalize player and continue encounter
       const hitPenalty = Math.floor(penalty / 2); // Less punishing than fleeing
       gameState.playerMoney -= hitPenalty;
+      // Notifica al frontend cuánto daño sufrió el jugador
+      gameState.lastDamageTaken = hitPenalty;
       gameState.gameMessage =
         minionSkillMessage +
         `You hit the minion for ${damage}, but it survives! It hits you back, you lose $${hitPenalty}. (HP left: ${minionSquare.effectDetails.hp})`;
       // The game phase remains "minion_encounter", forcing another player action
+    }
+      // Si el minion fue derrotado NO hubo contra-golpe, así que pon 0
+    if (gameState.gamePhase === "rolling") {
+      gameState.lastDamageTaken = 0;
     }
 
     // Garantiza un Random para el próximo tiro,

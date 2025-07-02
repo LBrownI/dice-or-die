@@ -276,6 +276,7 @@ onMounted(async () => {
     a.load(); // precarga
     return a;
   });
+  hitSounds.forEach((a) => a.load());
   if (audioPlayer.value) audioPlayer.value.volume = 0.9;
   if (fightPlayer.value) fightPlayer.value.volume = 0; // empieza silenciado
 });
@@ -298,6 +299,35 @@ function handleToggleSpeed() {
 function payBribe() {
   gameStore.payBossBribe();
 }
+
+/* ---------- ⚡ EFECTO DE GOLPE ---------- */
+const isHit = ref(false);
+const hitSounds = [
+  new Audio(`${import.meta.env.BASE_URL}assets/sfx/hits/hit-1.mp3`),
+  new Audio(`${import.meta.env.BASE_URL}assets/sfx/hits/hit-2.mp3`),
+  new Audio(`${import.meta.env.BASE_URL}assets/sfx/hits/hit-3.mp3`),
+];
+
+function triggerHitEffect() {
+  isHit.value = true;                    // ← activa animación
+  setTimeout(() => (isHit.value = false), 400); // dura 0.4 s
+  const s = hitSounds[Math.floor(Math.random() * hitSounds.length)];
+  s.currentTime = 0;
+  s.play().catch(() => {});
+}
+
+watch(
+  () => gameStore.lastDamageTaken,
+  (dmg) => {
+    console.log("⚔️ Daño recibido →", dmg, " En minion fight:", gameStore.inMinionFight);
+    if (dmg > 0 && gameStore.inMinionFight) {
+      triggerHitEffect();
+      gameStore.lastDamageTaken = 0;
+    }
+  }
+);
+
+
 
 async function handleNewRun() {
   showOptionsModal.value = false;
@@ -345,6 +375,7 @@ function openSkinChanger() {
               :src="dynamicPlayerImage"
               :alt="`Character: ${gameStore.playerCharacter}`"
               class="large-static-player-image"
+              :class="{ 'hit-character': isHit }"
             />
             <h3 class="player-name">
               {{ getCharacterDisplayName(gameStore.playerCharacter) }}
@@ -699,4 +730,39 @@ function openSkinChanger() {
   opacity: 1;
   transform: scale(1);
 }
+/* ---------- 🎨 Animación del flash rojo ---------- */
+@keyframes flashRed {
+  0%   { opacity: 0.45; }
+  100% { opacity: 0; }
+}
+
+/* ---------- Animación de golpe ---------- */
+@keyframes hitTint {
+  0%   { filter: none; }
+  10%  {                     /* destello rojo muy marcado */
+        filter:
+          brightness(1.6)
+          contrast(1.2)
+          saturate(8)
+          sepia(1)
+          hue-rotate(-50deg);
+  }
+  100% { filter: none; }
+}
+
+
+
+@keyframes hitShake {
+  0%,100% { transform: translateX(0); }
+  20%,60% { transform: translateX(-6px); }
+  40%,80% { transform: translateX(6px); }
+}
+
+.hit-character {
+  animation: hitTint 0.4s ease-out forwards,
+             hitShake 0.4s ease-out forwards;
+  box-shadow: 0 0 0 4px rgba(255,0,0,0.45) inset; /* refuerzo rojo interno */
+}
+
+
 </style>

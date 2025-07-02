@@ -47,6 +47,8 @@ export const useGameStore = defineStore("game", () => {
   const currentBossHP = ref(null);
   const currentBossMaxHP = ref(null);
   const showBossRollAnimation = ref(false);
+  const inMinionFight = ref(false); 
+  const lastDamageTaken = ref(0); // For hit flash effect
 
   // Game summary state
   const totalRolls = ref(0);
@@ -147,6 +149,8 @@ export const useGameStore = defineStore("game", () => {
         diceObtained: diceObtained.value,
         perfectBossDefeats: perfectBossDefeats.value,
         bribesBosses: bribesBosses.value,
+        inMinionFight: inMinionFight.value,
+        lastDamageTaken: lastDamageTaken.value,
       };
       await apiClient.put(`/api/game/${sessionId.value}`, persistentState);
     } catch (error) {
@@ -219,6 +223,9 @@ export const useGameStore = defineStore("game", () => {
       }
       // Finalmente aplicamos el estado “oficial”
       this.$patch(updatedState);
+    // Si hemos salido del encuentro con minion, limpia el daño
+    inMinionFight.value = updatedState.gamePhase === "minion_encounter";
+    if (!inMinionFight.value) lastDamageTaken.value = 0;
     } catch (error) {
       console.error("Pinia: Failed to roll dice", error);
     } finally {
@@ -389,6 +396,8 @@ export const useGameStore = defineStore("game", () => {
     playerCharacter,
     playerSkin,
     skillState,
+    inMinionFight,
+    lastDamageTaken,
 
     // Getters
     diceBagCapacityDisplay,
