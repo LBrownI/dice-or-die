@@ -20,6 +20,7 @@ const showSkinChangerModal = ref(false);
 const audioPlayer = ref(null);
 const diceSfxList = ref([]);
 const fightPlayer = ref(null);
+const skillSfx = ref(null);
 
 const characters = [
   { id: "knight", name: "Knight", skins: ["blue", "green", "red", "black"] },
@@ -309,7 +310,7 @@ const hitSounds = [
 ];
 
 function triggerHitEffect() {
-  isHit.value = true;                    // ← activa animación
+  isHit.value = true; // ← activa animación
   setTimeout(() => (isHit.value = false), 400); // dura 0.4 s
   const s = hitSounds[Math.floor(Math.random() * hitSounds.length)];
   s.currentTime = 0;
@@ -327,7 +328,12 @@ watch(
   }
 );
 
-
+function playSkillSfx() {
+  if (skillSfx.value) {
+    skillSfx.value.currentTime = 0;
+    skillSfx.value.play().catch(() => {});
+  }
+}
 
 async function handleNewRun() {
   showOptionsModal.value = false;
@@ -349,10 +355,14 @@ function handleMainMenu() {
 }
 
 function handleSkillToggle(isActive) {
+  if (isActive) {
+    playSkillSfx();
+  }
   gameStore.toggleSkill(isActive);
 }
 
 function handleSkillUse() {
+  playSkillSfx();
   // Only for Thief for now
   gameStore.useSkill();
 }
@@ -367,6 +377,7 @@ function openSkinChanger() {
   <div class="game-view-container">
     <audio ref="audioPlayer" style="display: none"></audio>
     <audio ref="fightPlayer" style="display: none"></audio>
+    <audio ref="skillSfx" src="/assets/sfx/flame_burst.wav" style="display: none"></audio>
     <template v-if="gameStore.boardIsReady">
       <div class="main-game-area">
         <div class="left-panel-area">
@@ -392,11 +403,12 @@ function openSkinChanger() {
             <p class="stage-info">Stage: {{ gameStore.playerStage }} / 5</p>
             <div class="turn-pos-info">
               <span>↩️ Turn: {{ gameStore.totalRolls }}</span>
+              <span>Lap: {{ gameStore.playerLap }}/3</span>
               <span>Pos: {{ gameStore.playerPosition }}</span>
             </div>
             <p class="money-info">🪙 Money: ${{ gameStore.playerMoney }}</p>
             <p v-if="gameStore.gameMessage" class="game-feedback">{{ gameStore.gameMessage }}</p>
-            <p v-else class="game-feedback">Lap {{ gameStore.playerLap }}/3. Roll a die!</p>
+            <p v-else class="game-feedback">Roll a die!</p>
           </div>
 
           <div class="side-action-buttons">
@@ -732,37 +744,45 @@ function openSkinChanger() {
 }
 /* ---------- 🎨 Animación del flash rojo ---------- */
 @keyframes flashRed {
-  0%   { opacity: 0.45; }
-  100% { opacity: 0; }
+  0% {
+    opacity: 0.45;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 /* ---------- Animación de golpe ---------- */
 @keyframes hitTint {
-  0%   { filter: none; }
-  10%  {                     /* destello rojo muy marcado */
-        filter:
-          brightness(1.6)
-          contrast(1.2)
-          saturate(8)
-          sepia(1)
-          hue-rotate(-50deg);
+  0% {
+    filter: none;
   }
-  100% { filter: none; }
+  10% {
+    /* destello rojo muy marcado */
+    filter: brightness(1.6) contrast(1.2) saturate(8) sepia(1) hue-rotate(-50deg);
+  }
+  100% {
+    filter: none;
+  }
 }
 
-
-
 @keyframes hitShake {
-  0%,100% { transform: translateX(0); }
-  20%,60% { transform: translateX(-6px); }
-  40%,80% { transform: translateX(6px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20%,
+  60% {
+    transform: translateX(-6px);
+  }
+  40%,
+  80% {
+    transform: translateX(6px);
+  }
 }
 
 .hit-character {
-  animation: hitTint 0.4s ease-out forwards,
-             hitShake 0.4s ease-out forwards;
-  box-shadow: 0 0 0 4px rgba(255,0,0,0.45) inset; /* refuerzo rojo interno */
+  animation: hitTint 0.4s ease-out forwards, hitShake 0.4s ease-out forwards;
+  box-shadow: 0 0 0 4px rgba(255, 0, 0, 0.45) inset; /* refuerzo rojo interno */
 }
-
-
 </style>

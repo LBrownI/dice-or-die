@@ -221,7 +221,7 @@ const bossImageUrl = computed(() => {
       class="minion-overlay"
     >
       <div class="minion-wrapper animated-boss">
-        <h2 class="minion-name">Minion Encounter!</h2>
+        <h2 class="minion-name">{{ currentMinionSquare.effectDetails.name }}</h2>
         <img v-if="minionImageUrl" :src="minionImageUrl" alt="Minion" class="minion-image" />
         <p class="minion-hp-text">❤️ HP: {{ currentMinionSquare.effectDetails.hp }}</p>
         <p class="minion-info">Use a die from your pouch to attack!</p>

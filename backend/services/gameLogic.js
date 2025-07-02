@@ -13,7 +13,8 @@ const STAGE_CONFIGS = {
       count: { min: 2, max: 4 },
       hp: 5,
       penalty: 10,
-      image: "goblin_soldier.png",
+      name: "Skeleton Whisp",
+      image: "skeleton_whisp.png",
     },
     minChoiceDiceMoneySquares: 2,
     maxChoiceDiceMoneySquares: 4,
@@ -37,7 +38,8 @@ const STAGE_CONFIGS = {
       count: { min: 2, max: 4 },
       hp: 5,
       penalty: 10,
-      image: "goblin_soldier.png",
+      name: "Goblin Tinkerer",
+      image: "goblin_tinkerer.webp",
     },
     minChoiceDiceMoneySquares: 4,
     maxChoiceDiceMoneySquares: 8,
@@ -61,7 +63,8 @@ const STAGE_CONFIGS = {
       count: { min: 2, max: 4 },
       hp: 5,
       penalty: 10,
-      image: "goblin_soldier.png",
+      name: "Ghoul",
+      image: "ghoul.png",
     },
     minChoiceDiceMoneySquares: 4,
     maxChoiceDiceMoneySquares: 8,
@@ -85,7 +88,8 @@ const STAGE_CONFIGS = {
       count: { min: 4, max: 8 },
       hp: 5,
       penalty: 10,
-      image: "goblin_soldier.png",
+      name: "Dark Godcat",
+      image: "dark_godcat.webp",
     },
     minChoiceDiceMoneySquares: 8,
     maxChoiceDiceMoneySquares: 16,
@@ -109,14 +113,15 @@ const STAGE_CONFIGS = {
       count: { min: 4, max: 8 },
       hp: 5,
       penalty: 10,
-      image: "goblin_soldier.png",
+      name: "Skeleton Warrior",
+      image: "skeleton_warrior.png",
     },
     minChoiceDiceMoneySquares: 8,
     maxChoiceDiceMoneySquares: 16,
     minChoicePickDieSquares: 8,
     maxChoicePickDieSquares: 16,
-    bossName: "Dark Godcat",
-    bossImage: "dark_godcat.webp",
+    bossName: "The Paladin",
+    bossImage: "the_paladin.png",
     bossDefeatCondition: {
       diceThrows: 3,
       hp: 70,
@@ -266,6 +271,7 @@ function setupLapEffects(gameState) {
         penalty: Math.floor(
           config.minions.penalty * (1 + (gameState.playerStage - 1) * 0.75)
         ),
+        name: config.minions.name,
         image: config.minions.image,
       };
     }
@@ -422,11 +428,9 @@ function getRandomDiePool() {
   return [
     { type: "Fixed", value: getRandomInt(2, 6) },
     { type: "Reverse Fixed", value: getRandomInt(2, 6) },
-    { type: "Reverse Random" },
     { type: "20" },
     { type: "Fixed", value: 1 },
     { type: "Fixed", value: 6 },
-    { type: "Random" },
   ];
 }
 
@@ -678,23 +682,11 @@ function handlePlayerTurn(gameState, reservedDieIndex, user) {
         `You hit the minion for ${damage}, but it survives! It hits you back, you lose $${hitPenalty}. (HP left: ${minionSquare.effectDetails.hp})`;
       // The game phase remains "minion_encounter", forcing another player action
     }
-      // Si el minion fue derrotado NO hubo contra-golpe, así que pon 0
+    // Si el minion fue derrotado NO hubo contra-golpe, así que pon 0
     if (gameState.gamePhase === "rolling") {
       gameState.lastDamageTaken = 0;
     }
 
-    // Garantiza un Random para el próximo tiro,
-    // aunque sigamos en minion_encounter
-    const hasRandom = gameState.reservedDice.some((d) => d.type === "Random");
-    if (!hasRandom) {
-      if (gameState.reservedDice.length < gameState.maxDiceInBag) {
-        gameState.reservedDice.push({ type: "Random" });
-      } else {
-        gameState.reservedDice[gameState.reservedDice.length - 1] = {
-          type: "Random",
-        };
-      }
-    }
     return { updatedState: gameState, updatedUser: user, movementPath };
   }
 
@@ -983,12 +975,70 @@ function handleThiefSkill(gameState) {
     if (!minionSquare || !minionSquare.effectDetails) {
       return { error: "No minion to steal from." };
     }
-    // Steal a smaller amount, don't end the fight
-    const moneyStolen = Math.floor(
-      (minionSquare.effectDetails.penalty * getRandomInt(25, 50)) / 100
-    );
-    gameState.playerMoney += moneyStolen;
-    gameState.gameMessage = `Thief skill: Stole $${moneyStolen} from the minion!`;
+
+    let reward;
+    const stage = gameState.playerStage;
+
+    const dicePool = [
+      { type: "Fixed", value: getRandomInt(2, 6) },
+      { type: "Reverse Fixed", value: getRandomInt(2, 6) },
+      { type: "Fixed", value: 1 },
+      { type: "Reverse Random" },
+    ];
+    const advancedDicePool = [...dicePool, { type: "20" }];
+
+    switch (stage) {
+      case 1: // skeleton_whisp, steal dice (no d20)
+        reward = {
+          type: "dice",
+          value: dicePool[getRandomInt(0, dicePool.length - 1)],
+        };
+        break;
+      case 2: // goblin_tinkerer, steal money
+        const moneyStolen = Math.floor(
+          (minionSquare.effectDetails.penalty * getRandomInt(25, 50)) / 100
+        );
+        reward = { type: "money", value: moneyStolen };
+        break;
+      case 3: // ghoul, steal dice (no d20)
+        reward = {
+          type: "dice",
+          value: dicePool[getRandomInt(0, dicePool.length - 1)],
+        };
+        break;
+      case 4: // dark_godcat, money or dice (with d20)
+      case 5: // skeleton_warrior, money or dice (with d20)
+        if (Math.random() < 0.5) {
+          const money = Math.floor(
+            (minionSquare.effectDetails.penalty * getRandomInt(30, 60)) / 100
+          );
+          reward = { type: "money", value: money };
+        } else {
+          reward = {
+            type: "dice",
+            value:
+              advancedDicePool[getRandomInt(0, advancedDicePool.length - 1)],
+          };
+        }
+        break;
+      default:
+        return { error: "No steal action defined for this stage's minion." };
+    }
+
+    if (reward.type === "money") {
+      gameState.playerMoney += reward.value;
+      gameState.gameMessage = `Thief skill: Stole $${reward.value} from the minion!`;
+    } else if (reward.type === "dice") {
+      if (gameState.reservedDice.length < gameState.maxDiceInBag) {
+        gameState.reservedDice.push(reward.value);
+        gameState.diceObtained = (gameState.diceObtained || 0) + 1;
+        gameState.gameMessage = `Thief skill: Stole a ${reward.value.type} die from the minion!`;
+      } else {
+        gameState.gameMessage =
+          "Thief skill: Tried to steal a die, but pouch is full!";
+      }
+    }
+
     gameState.skillState.isUsedInEncounter = true; // Mark as used
     return { updatedState: gameState };
   }
