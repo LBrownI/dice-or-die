@@ -1,0 +1,23 @@
+/* frontend/src/style.css */
+html,
+body,
+#app {
+  height: 100%; /* ocupan todo el viewport */
+  overflow: hidden; /* quita las barras general-mente */
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* lo que ya tenías */
+body {
+  margin: 0;
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+/* #app { … }  si necesitas centrar o layout global aquí */

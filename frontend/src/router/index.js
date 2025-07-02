@@ -1,0 +1,30 @@
+// src/router/index.js
+import { createRouter, createWebHistory } from "vue-router";
+import HomeView from "../views/HomeView.vue";
+// GameView is lazy-loaded, which is good practice
+// const GameView = () => import("../views/GameView.vue");
+
+const routes = [
+  {
+    path: "/",
+    name: "Home",
+    component: HomeView,
+  },
+  {
+    path: "/game/:sessionId",
+    name: "Game",
+    component: () => import("../views/GameView.vue"), // Lazy load GameView
+  },
+  {
+    path: "/login",
+    name: "Login",
+    component: () => import("../views/LoginView.vue"), // Lazy load LoginView
+  },
+];
+
+const router = createRouter({
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes,
+});
+
+export default router;
