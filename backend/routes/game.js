@@ -1,4 +1,4 @@
-//backend\routes\game.js
+//backend\routes\game.js 
 const express = require("express");
 const router = express.Router();
 const GameSession = require("../models/GameSession");
@@ -13,6 +13,7 @@ const {
   handleFleeMinion,
 } = require("../services/gameLogic");
 
+// i like furries
 // POST /api/game/start - Creates a new game session
 router.post("/start", async (req, res) => {
   try {
