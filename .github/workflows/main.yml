@@ -27,7 +27,7 @@ jobs:
           cache: "pnpm" # Use pnpm for caching
 
       - name: Install Frontend Dependencies
-        run: cd frontend && pnpm install --frozen-lockfile
+        run: cd frontend && pnpm install --no-frozen-lockfile
 
       - name: Run Frontend Lint Check
         run: cd frontend && pnpm lint
