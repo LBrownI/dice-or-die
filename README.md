@@ -80,7 +80,6 @@ The easiest way to run the entire application (frontend, backend, and database) 
 ### Prerequisites
 
   * Docker and Docker Compose installed.
-  * `.env` file in the `/backend` directory with: `MONGODB_URI=your_mongodb_connection_string`
   * `.env` file in the `/frontend` directory with: `VITE_API_BASE_URL=http://localhost:3000`
 
 ### Steps
